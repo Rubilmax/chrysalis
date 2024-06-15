@@ -1,0 +1,86 @@
+{
+  "name": "chrysalis",
+  "version": "1.0.0",
+  "author": {
+    "name": "Romain (Rubilmax) Milon",
+    "email": "rmilon@gmail.com",
+    "url": "https://github.com/rubilmax"
+  },
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "codegen": "graphql-codegen --config codegen.ts && prettier -w src/graphql/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rubilmax/chrysalis.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rubilmax/chrysalis/issues"
+  },
+  "keywords": [
+    "morpho",
+    "blue",
+    "viem",
+    "executor",
+    "evm",
+    "smart contract"
+  ],
+  "dependencies": {
+    "@apollo/client": "^3.10.5",
+    "@safe-global/safe-apps-react-sdk": "^4.7.2",
+    "@tanstack/react-query": "^5.45.0",
+    "@web3modal/wagmi": "^5.0.2",
+    "next": "^14.2.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.51.5",
+    "viem": "^2.14.1",
+    "wagmi": "^2.10.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.3.0",
+    "@commitlint/config-conventional": "^19.2.2",
+    "@graphql-codegen/cli": "^5.0.2",
+    "@graphql-codegen/near-operation-file-preset": "^3.0.0",
+    "@graphql-codegen/typescript-operations": "^4.0.1",
+    "@graphql-codegen/typescript-react-apollo": "^4.3.0",
+    "@trivago/prettier-plugin-sort-imports": "^4.3.0",
+    "@types/node": "^20.14.2",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@wagmi/cli": "^2.1.10",
+    "encoding": "^0.1.13",
+    "graphql": "^16.8.2",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "lokijs": "^1.5.12",
+    "pino-pretty": "^11.2.1",
+    "prettier": "^3.3.2",
+    "typescript": "^5.2.2"
+  },
+  "lint-staged": {
+    "*.ts*": "prettier"
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "prettier": {
+    "printWidth": 120,
+    "importOrder": [
+      "^ethers",
+      "^\\."
+    ],
+    "importOrderSeparation": true,
+    "plugins": [
+      "@trivago/prettier-plugin-sort-imports"
+    ]
+  }
+}

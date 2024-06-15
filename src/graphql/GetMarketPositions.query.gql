@@ -1,0 +1,56 @@
+query getMarketPositions(
+  $where: MarketPositionFilters
+  $orderBy: MarketPositionOrderBy
+  $orderDirection: OrderDirection
+  $first: Int
+  $skip: Int
+) {
+  marketPositions(first: $first, skip: $skip, where: $where, orderBy: $orderBy, orderDirection: $orderDirection) {
+    items {
+      id
+      borrowShares
+      borrowAssets
+      borrowAssetsUsd
+      collateral
+      collateralUsd
+      market {
+        id
+        uniqueKey
+        lltv
+        oracleAddress
+        irmAddress
+        morphoBlue {
+          id
+          address
+          chain {
+            id
+          }
+        }
+        loanAsset {
+          id
+          address
+          symbol
+          name
+          decimals
+          priceUsd
+        }
+        collateralAsset {
+          id
+          address
+          symbol
+          name
+          decimals
+          priceUsd
+        }
+      }
+      user {
+        id
+        address
+        tag
+        chain {
+          id
+        }
+      }
+    }
+  }
+}
