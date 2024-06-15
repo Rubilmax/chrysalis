@@ -11,7 +11,6 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { alpha, styled } from "@mui/material/styles";
 import Image from "next/image";
-import { isAddress } from "viem";
 
 const Search = styled("div")(({ theme }) => ({
 	position: "relative",
@@ -30,17 +29,17 @@ const Search = styled("div")(({ theme }) => ({
 }));
 
 const NavBar = () => {
-	const { executor, setExecutor } = useContext(ExecutorContext);
+	const { executor, setExecutor, isValid } = useContext(ExecutorContext);
 
-	const isValid = isAddress(executor.toLowerCase());
+	const invalidExecutor = executor != null && !isValid;
 
 	return (
-		<AppBar position="static" elevation={0} color="transparent">
+		<AppBar position="static" elevation={0} color="secondary">
 			<Toolbar>
 				<Image
-					src="https://cdn.morpho.xyz/assets/logos/morpho.png"
+					src="./chrysalis.png"
 					alt="Logo"
-					width={40}
+					width={26}
 					height={40}
 					style={{ marginRight: "1rem" }}
 				/>
@@ -62,15 +61,16 @@ const NavBar = () => {
 				<Box flexGrow="1" />
 				<Search>
 					<TextField
-						value={executor}
+						value={executor ?? ""}
 						placeholder="Executor address"
 						onChange={(event) => setExecutor(event.target.value)}
-						error={!isValid}
-						helperText={isValid ? "" : "Invalid address"}
+						error={invalidExecutor}
+						helperText={invalidExecutor ? "Invalid address" : ""}
 						size="small"
 						variant="outlined"
 						label="Executor address"
 						style={{ width: "26rem" }}
+						disabled={executor == null}
 					/>
 				</Search>
 				<Box flexGrow="1" />

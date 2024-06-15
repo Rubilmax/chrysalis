@@ -29,6 +29,11 @@ export type GetUserMarketPositionsQuery = {
 				oracleAddress: Types.Scalars["Address"]["output"];
 				irmAddress: Types.Scalars["Address"]["output"];
 				collateralPrice: Types.Scalars["BigInt"]["output"] | null;
+				morphoBlue: {
+					__typename?: "MorphoBlue";
+					id: string;
+					address: Types.Scalars["Address"]["output"];
+				};
 				loanAsset: {
 					__typename?: "Asset";
 					id: string;
@@ -82,6 +87,10 @@ export const GetUserMarketPositionsDocument = gql`
         oracleAddress
         irmAddress
         collateralPrice
+        morphoBlue {
+          id
+          address
+        }
         loanAsset {
           id
           address

@@ -4,7 +4,7 @@ import { mainnet, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, safe } from "wagmi/connectors";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
-const appLogoUrl = "https://cdn.morpho.xyz/assets/logos/morpho.png";
+const appLogoUrl = "https://rubilmax.github.io/chrysalis/chrysalis.png";
 
 export const config = createConfig(
 	getDefaultConfig({

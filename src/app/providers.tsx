@@ -19,6 +19,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { Address, isAddress } from "viem";
 import { type State, WagmiProvider } from "wagmi";
 
 const queryClient = new QueryClient();
@@ -31,23 +32,38 @@ const apolloClient = new ApolloClient({
 	}).concat(new HttpLink({ uri: "https://blue-api.morpho.org/graphql" })),
 });
 
-export const ExecutorContext = createContext<{
-	executor: string;
-	setExecutor: Dispatch<SetStateAction<string>>;
-}>({
-	executor: "",
+export const ExecutorContext = createContext<
+	| {
+			executor: Address;
+			setExecutor: Dispatch<SetStateAction<string | undefined>>;
+			isValid: true;
+	  }
+	| {
+			executor?: string;
+			setExecutor: Dispatch<SetStateAction<string | undefined>>;
+			isValid: false;
+	  }
+>({
 	setExecutor: () => {},
+	isValid: false,
 });
 
 export function Providers({
 	children,
 	initialState,
 }: { children: ReactNode; initialState?: State }) {
-	const [executor, setExecutor] = useState(
-		localStorage.getItem("executor") ?? "",
-	);
+	const [executor, setExecutor] = useState<string>();
 
 	useEffect(() => {
+		const storedExecutor = localStorage.getItem("executor");
+		if (storedExecutor == null) return;
+
+		setExecutor(storedExecutor);
+	}, []);
+
+	useEffect(() => {
+		if (executor == null) return;
+
 		localStorage.setItem("executor", executor);
 	}, [executor]);
 
@@ -59,7 +75,21 @@ export function Providers({
 						<ApolloProvider client={apolloClient}>
 							<AppRouterCacheProvider>
 								<ThemeProvider theme={theme}>
-									<ExecutorContext.Provider value={{ executor, setExecutor }}>
+									<ExecutorContext.Provider
+										value={
+											executor && isAddress(executor.toLowerCase())
+												? {
+														executor: executor as Address,
+														setExecutor,
+														isValid: true,
+													}
+												: {
+														executor,
+														setExecutor,
+														isValid: false,
+													}
+										}
+									>
 										{children}
 									</ExecutorContext.Provider>
 								</ThemeProvider>

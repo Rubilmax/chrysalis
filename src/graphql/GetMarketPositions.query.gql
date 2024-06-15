@@ -15,6 +15,10 @@ query getUserMarketPositions($address: String!, $chainId: Int!) {
         oracleAddress
         irmAddress
         collateralPrice
+        morphoBlue {
+          id
+          address
+        }
         loanAsset {
           id
           address

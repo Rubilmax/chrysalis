@@ -1,8 +1,10 @@
 "use client";
 
-import React, { memo, useMemo } from "react";
-import { parseUnits } from "viem";
+import React, { memo, useContext, useMemo } from "react";
+import { Hex, parseUnits, zeroAddress } from "viem";
 import "evm-maths";
+import { ExecutorContext } from "@/app/providers";
+import { useEthersProvider } from "@/ethers";
 import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -10,6 +12,9 @@ import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
+import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
+import { ExecutorEncoder } from "executooor";
+import { useAccount, useSendTransaction } from "wagmi";
 
 const Position = ({
 	position,
@@ -41,13 +46,27 @@ const Position = ({
 
 	const borrowApy = position.market.dailyApys?.borrowApy;
 
+	const { sendTransaction } = useSendTransaction();
+	const provider = useEthersProvider();
+	const { executor, isValid } = useContext(ExecutorContext);
+
+	const account = useAccount();
+	const { connected } = useSafeAppsSDK();
+
+	const marketParams = {
+		collateralToken: position.market.collateralAsset?.address ?? zeroAddress,
+		loanToken: position.market.loanAsset.address,
+		irm: position.market.irmAddress,
+		oracle: position.market.oracleAddress,
+		lltv: position.market.lltv,
+	};
+
 	return (
 		<Paper key={position.market.uniqueKey}>
 			<Box padding={2} display="flex" alignItems="center">
 				<Box display="flex" flexDirection="column">
-					{/* <Avatar src={position.market.collateralAsset} /> */}
 					<Typography variant="h4">
-						{position.market.collateralAsset?.symbol ?? "[IDLE]"} /{" "}
+						{position.market.collateralAsset?.symbol + " /" ?? "[IDLE]"}{" "}
 						{position.market.loanAsset.symbol}
 					</Typography>
 					<Box display="flex">
@@ -83,7 +102,41 @@ const Position = ({
 				<Typography>LTV: {ltv}%</Typography>
 				<Typography>Leverage: {leverage}</Typography>
 				<Box display="flex" justifyItems="right">
-					<Button variant="contained" disableElevation>
+					<Button
+						variant="contained"
+						disableElevation
+						onClick={async () => {
+							if (!isValid) return;
+
+							const encoder = new ExecutorEncoder(executor, provider);
+
+							if (connected) {
+							} else {
+								const { value, data } = await encoder
+									.morphoBlueRepay(
+										position.market.morphoBlue.address,
+										marketParams,
+										0n,
+										position.borrowShares,
+										account.address!,
+										[],
+									)
+									.morphoBlueWithdrawCollateral(
+										position.market.morphoBlue.address,
+										marketParams,
+										position.collateral,
+										account.address!,
+										account.address!,
+									)
+									.populateExec();
+
+								console.log({ to: executor, value, data: data as Hex });
+
+								sendTransaction({ to: executor, value, data: data as Hex });
+							}
+						}}
+						disabled={!isValid}
+					>
 						Close position
 					</Button>
 				</Box>
