@@ -27,7 +27,6 @@ const scalars = {
 
 const config: CodegenConfig = {
 	overwrite: true,
-
 	schema: "https://blue-api.morpho.org/graphql",
 	documents: ["src/graphql/*.query.gql", "src/graphql/*.fragment.gql"],
 	generates: {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
+import { ConnectKitButton } from "connectkit";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { type Address, isAddress } from "viem";
@@ -32,18 +33,7 @@ function App() {
 
 	return (
 		<>
-			{!connected && (
-				<div style={{ display: "inline-block" }}>
-					{
-						// @ts-ignore
-						<w3m-network-button />
-					}
-					{
-						// @ts-ignore
-						<w3m-button />
-					}
-				</div>
-			)}
+			<ConnectKitButton />
 
 			<div>
 				<h2>Deploy</h2>
