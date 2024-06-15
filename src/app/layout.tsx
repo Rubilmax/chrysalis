@@ -8,15 +8,15 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chrysalis",
+	title: "Chrysalis",
 };
 
 export default function RootLayout(props: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <body className={inter.className}>
-        <Providers>{props.children}</Providers>
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en">
+			<body className={inter.className}>
+				<Providers>{props.children}</Providers>
+			</body>
+		</html>
+	);
 }

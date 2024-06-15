@@ -14,13 +14,7 @@ query getUserMarketPositions($address: String!, $chainId: Int!) {
         lltv
         oracleAddress
         irmAddress
-        morphoBlue {
-          id
-          address
-          chain {
-            id
-          }
-        }
+        collateralPrice
         loanAsset {
           id
           address
@@ -36,6 +30,10 @@ query getUserMarketPositions($address: String!, $chainId: Int!) {
           name
           decimals
           priceUsd
+        }
+        dailyApys {
+          borrowApy
+          netBorrowApy
         }
       }
       user {

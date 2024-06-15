@@ -28,12 +28,7 @@ export type GetUserMarketPositionsQuery = {
 				lltv: Types.Scalars["BigInt"]["output"];
 				oracleAddress: Types.Scalars["Address"]["output"];
 				irmAddress: Types.Scalars["Address"]["output"];
-				morphoBlue: {
-					__typename?: "MorphoBlue";
-					id: string;
-					address: Types.Scalars["Address"]["output"];
-					chain: { __typename?: "Chain"; id: number };
-				};
+				collateralPrice: Types.Scalars["BigInt"]["output"] | null;
 				loanAsset: {
 					__typename?: "Asset";
 					id: string;
@@ -51,6 +46,11 @@ export type GetUserMarketPositionsQuery = {
 					name: string;
 					decimals: number;
 					priceUsd: number | null;
+				} | null;
+				dailyApys: {
+					__typename?: "MarketApyAggregates";
+					borrowApy: number | null;
+					netBorrowApy: number | null;
 				} | null;
 			};
 			user: {
@@ -81,13 +81,7 @@ export const GetUserMarketPositionsDocument = gql`
         lltv
         oracleAddress
         irmAddress
-        morphoBlue {
-          id
-          address
-          chain {
-            id
-          }
-        }
+        collateralPrice
         loanAsset {
           id
           address
@@ -103,6 +97,10 @@ export const GetUserMarketPositionsDocument = gql`
           name
           decimals
           priceUsd
+        }
+        dailyApys {
+          borrowApy
+          netBorrowApy
         }
       }
       user {
