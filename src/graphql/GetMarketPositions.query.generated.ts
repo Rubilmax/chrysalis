@@ -57,6 +57,21 @@ export type GetUserMarketPositionsQuery = {
 					borrowApy: number | null;
 					netBorrowApy: number | null;
 				} | null;
+				weeklyApys: {
+					__typename?: "MarketApyAggregates";
+					borrowApy: number | null;
+					netBorrowApy: number | null;
+				} | null;
+				monthlyApys: {
+					__typename?: "MarketApyAggregates";
+					borrowApy: number | null;
+					netBorrowApy: number | null;
+				} | null;
+				state: {
+					__typename?: "MarketState";
+					borrowApy: number;
+					netBorrowApy: number | null;
+				} | null;
 			};
 			user: {
 				__typename?: "User";
@@ -108,6 +123,18 @@ export const GetUserMarketPositionsDocument = gql`
           priceUsd
         }
         dailyApys {
+          borrowApy
+          netBorrowApy
+        }
+        weeklyApys {
+          borrowApy
+          netBorrowApy
+        }
+        monthlyApys {
+          borrowApy
+          netBorrowApy
+        }
+        state {
           borrowApy
           netBorrowApy
         }

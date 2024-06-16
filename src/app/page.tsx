@@ -5,7 +5,7 @@ import React, { useMemo } from "react";
 import { useAccount, useChainId } from "wagmi";
 import "evm-maths";
 import NavBar from "@/components/NavBar";
-import Position from "@/components/Position";
+import PositionCard from "@/components/PositionCard";
 import Container from "@mui/material/Container";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -49,7 +49,7 @@ function App() {
 						positions && (
 							<>
 								{positions.map((position) => (
-									<Position
+									<PositionCard
 										key={position.market.uniqueKey}
 										position={position}
 									/>

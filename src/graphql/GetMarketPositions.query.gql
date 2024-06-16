@@ -39,6 +39,18 @@ query getUserMarketPositions($address: String!, $chainId: Int!) {
           borrowApy
           netBorrowApy
         }
+        weeklyApys {
+          borrowApy
+          netBorrowApy
+        }
+        monthlyApys {
+          borrowApy
+          netBorrowApy
+        }
+        state {
+          borrowApy
+          netBorrowApy
+        }
       }
       user {
         id

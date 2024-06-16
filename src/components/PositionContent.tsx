@@ -2,16 +2,12 @@
 
 import { ExecutorContext } from "@/app/providers";
 import { useEthersProvider } from "@/ethers";
-import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
-import Paper from "@mui/material/Paper";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -22,15 +18,18 @@ import { ExecutorEncoder } from "executooor";
 import { memo, useContext, useMemo, useState } from "react";
 import { Hex, maxUint256, parseUnits, zeroAddress } from "viem";
 import { useAccount, useSendTransaction } from "wagmi";
+import { Position } from "./PositionCard";
 
-const Position = ({
-	position,
+const PositionContent = ({
+	position: { collateral, collateralUsd, borrowAssets, borrowShares, market },
 }: {
-	position: GetUserMarketPositionsQuery["userByAddress"]["marketPositions"][number];
+	position: Omit<Position, "market"> & {
+		market: Omit<Position["market"], "collateralAsset" | "collateralPrice"> & {
+			collateralAsset: NonNullable<Position["market"]["collateralAsset"]>;
+			collateralPrice: NonNullable<Position["market"]["collateralPrice"]>;
+		};
+	};
 }) => {
-	const borrowApy = position.market.dailyApys?.borrowApy;
-	const collateralDecimals = position.market.collateralAsset?.decimals ?? 0;
-
 	const { sendTransaction } = useSendTransaction();
 	const provider = useEthersProvider();
 	const { executor, isValid } = useContext(ExecutorContext);
@@ -38,42 +37,35 @@ const Position = ({
 	const account = useAccount();
 	const { connected } = useSafeAppsSDK();
 
-	const collateralValue = useMemo(() => {
-		if (position.market.collateralPrice == null) return;
+	const collateralValue = useMemo(
+		() => collateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
+		[collateral, market.collateralPrice],
+	);
 
-		return position.collateral.mulDivDown(
-			position.market.collateralPrice,
-			parseUnits("1", 36),
-		);
-	}, [position.collateral, position.market.collateralPrice]);
-
-	const balance = useMemo(() => {
-		if (position.market.collateralPrice == null) return;
-
-		return (collateralValue! - position.borrowAssets).mulDivDown(
-			parseUnits("1", 36),
-			position.market.collateralPrice,
-		);
-	}, [position.borrowAssets, position.market.collateralPrice, collateralValue]);
+	const balance = useMemo(
+		() =>
+			(collateralValue - borrowAssets).mulDivDown(
+				parseUnits("1", 36),
+				market.collateralPrice,
+			),
+		[borrowAssets, market.collateralPrice, collateralValue],
+	);
 
 	const ltv = useMemo(() => {
-		if (!collateralValue) return maxUint256;
+		if (collateralValue === 0n) return maxUint256;
 
-		return position.borrowAssets.wadDiv(collateralValue);
-	}, [position.borrowAssets, collateralValue]);
+		return borrowAssets.wadDiv(collateralValue);
+	}, [borrowAssets, collateralValue]);
 
 	const leverage = useMemo(() => {
-		if (collateralValue == null) return 0;
-		if (collateralValue === position.borrowAssets) return Infinity;
+		if (collateralValue === borrowAssets) return Infinity;
 
-		return collateralValue
-			.wadDiv(collateralValue - position.borrowAssets)
-			.toWadFloat();
-	}, [position.borrowAssets, collateralValue]);
+		return collateralValue.wadDiv(collateralValue - borrowAssets).toWadFloat();
+	}, [borrowAssets, collateralValue]);
 
 	const maxLtv = useMemo(
-		() => position.market.lltv.wadMulDown(parseUnits("0.998", 18)),
-		[position.market.lltv],
+		() => market.lltv.wadMulDown(parseUnits("0.998", 18)),
+		[market.lltv],
 	);
 
 	const maxLeverage = useMemo(() => 1 / (1 - maxLtv.toWadFloat()), [maxLtv]);
@@ -83,14 +75,14 @@ const Position = ({
 	const withdraw = useMemo(() => {
 		if (withdrawField === "") return 0n;
 
-		if (withdrawField.split(".")[1]?.length > collateralDecimals) {
+		if (withdrawField.split(".")[1]?.length > market.collateralAsset.decimals) {
 			setWithdrawError("Too many decimals");
 			return;
 		}
 
 		setWithdrawError("");
 
-		return parseUnits(withdrawField, collateralDecimals ?? 18);
+		return parseUnits(withdrawField, market.collateralAsset.decimals ?? 18);
 	}, [withdrawField]);
 
 	const [leverageField, setLeverageField] = useState(
@@ -105,26 +97,22 @@ const Position = ({
 	);
 
 	const targetCollateral = useMemo(() => {
-		if (withdraw == null || balance == null) return;
+		if (withdraw == null) return;
 
 		return (balance - withdraw).wadDivDown(BigInt.WAD - targetLtv);
 	}, [balance, withdraw, targetLtv]);
 	const targetLoan = useMemo(() => {
-		if (targetCollateral == null || position.market.collateralPrice == null)
-			return;
+		if (targetCollateral == null) return;
 		if (targetCollateral === 0n) return 0n;
 
 		return targetLtv.wadMulDown(
-			targetCollateral.mulDivDown(
-				position.market.collateralPrice,
-				parseUnits("1", 36),
-			),
+			targetCollateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
 		);
-	}, [position.market.collateralPrice, targetCollateral, targetLtv]);
+	}, [market.collateralPrice, targetCollateral, targetLtv]);
 
 	const resultLtv = useMemo(() => {
 		if (
-			!position.market.collateralPrice ||
+			market.collateralPrice === 0n ||
 			targetCollateral == null ||
 			targetLoan == null
 		)
@@ -132,12 +120,9 @@ const Position = ({
 		if (targetCollateral === 0n) return 0n;
 
 		return targetLoan.wadDiv(
-			targetCollateral.mulDivDown(
-				position.market.collateralPrice,
-				parseUnits("1", 36),
-			),
+			targetCollateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
 		);
-	}, [position.market.collateralPrice, targetCollateral, targetLoan]);
+	}, [market.collateralPrice, targetCollateral, targetLoan]);
 
 	const errorMessage = !connected
 		? "You must log in through the Safe App."
@@ -146,27 +131,7 @@ const Position = ({
 			: "";
 
 	return (
-		<Paper key={position.market.uniqueKey}>
-			<Stack direction="row" alignItems="center" padding={2}>
-				<Stack>
-					<Typography variant="h4">
-						{position.market.collateralAsset?.symbol + " /" ?? "[IDLE]"}{" "}
-						{position.market.loanAsset.symbol}
-					</Typography>
-					<Stack direction="row">
-						<Chip
-							size="small"
-							label={`${position.market.lltv.format(16, 1)}%`}
-						/>
-					</Stack>
-				</Stack>
-				<Box marginLeft={3}>
-					<Typography variant="h5">
-						{borrowApy ? (borrowApy * 100).toFixed(2) : 0}%
-					</Typography>
-				</Box>
-			</Stack>
-			<Divider />
+		<>
 			<Stack padding={2}>
 				<TextField
 					value={withdrawField}
@@ -186,8 +151,8 @@ const Position = ({
 							<Typography variant="caption">
 								{withdrawError || withdraw == null
 									? withdrawError
-									: position.collateralUsd
-										? `$${(position.collateralUsd * withdraw.wadDiv(position.collateral).toWadFloat()).toFixed(2)}`
+									: collateralUsd
+										? `$${(collateralUsd * withdraw.wadDiv(collateral).toWadFloat()).toFixed(2)}`
 										: ""}
 							</Typography>
 							{balance && (
@@ -195,11 +160,13 @@ const Position = ({
 									variant="caption"
 									color="text.secondary"
 									onClick={() =>
-										setWithdrawField(balance.format(collateralDecimals))
+										setWithdrawField(
+											balance.format(market.collateralAsset.decimals),
+										)
 									}
 									sx={{ cursor: "pointer", textDecoration: "underline" }}
 								>
-									MAX: {balance.format(collateralDecimals, 3)}
+									MAX: {balance.format(market.collateralAsset.decimals, 3)}
 								</Typography>
 							)}
 						</Stack>
@@ -208,7 +175,7 @@ const Position = ({
 					InputProps={{
 						endAdornment: (
 							<InputAdornment position="end">
-								{position.market.collateralAsset?.symbol}
+								{market.collateralAsset?.symbol}
 
 								{withdraw !== 0n && (
 									<IconButton edge="end" onClick={() => setWithdrawField("")}>
@@ -259,7 +226,7 @@ const Position = ({
 								{" "}
 								⇾ {resultLtv.format(16, 2)}% /{" "}
 								<Typography variant="caption">
-									{position.market.lltv.format(16, 1)}%
+									{market.lltv.format(16, 1)}%
 								</Typography>
 							</>
 						) : (
@@ -267,15 +234,13 @@ const Position = ({
 						)}
 					</Typography>
 					<Typography variant="body2">
-						{(BigInt.WAD - ltv.wadDivDown(position.market.lltv)).format(16, 2)}%
+						{(BigInt.WAD - ltv.wadDivDown(market.lltv)).format(16, 2)}%
 						{resultLtv != null &&
 						(withdraw !== 0n || leverageField !== leverage) ? (
 							<>
 								{" "}
 								⇾{" "}
-								{(
-									BigInt.WAD - resultLtv.wadDivDown(position.market.lltv)
-								).format(16, 2)}
+								{(BigInt.WAD - resultLtv.wadDivDown(market.lltv)).format(16, 2)}
 								%
 							</>
 						) : (
@@ -306,27 +271,26 @@ const Position = ({
 						if (connected) {
 						} else {
 							const marketParams = {
-								collateralToken:
-									position.market.collateralAsset?.address ?? zeroAddress,
-								loanToken: position.market.loanAsset.address,
-								irm: position.market.irmAddress,
-								oracle: position.market.oracleAddress,
-								lltv: position.market.lltv,
+								collateralToken: market.collateralAsset?.address ?? zeroAddress,
+								loanToken: market.loanAsset.address,
+								irm: market.irmAddress,
+								oracle: market.oracleAddress,
+								lltv: market.lltv,
 							};
 
 							const { value, data } = await encoder
 								.morphoBlueRepay(
-									position.market.morphoBlue.address,
+									market.morphoBlue.address,
 									marketParams,
 									0n,
-									position.borrowShares,
+									borrowShares,
 									account.address!,
 									[],
 								)
 								.morphoBlueWithdrawCollateral(
-									position.market.morphoBlue.address,
+									market.morphoBlue.address,
 									marketParams,
-									position.collateral,
+									collateral,
 									account.address!,
 									account.address!,
 								)
@@ -342,8 +306,8 @@ const Position = ({
 					{withdraw === balance ? "Close" : "Adjust"}
 				</Button>
 			</Stack>
-		</Paper>
+		</>
 	);
 };
 
-export default memo(Position);
+export default memo(PositionContent);
