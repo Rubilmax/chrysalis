@@ -3,7 +3,8 @@
 import { ExecutorContext } from "@/app/providers";
 import { useEthersProvider } from "@/ethers";
 import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -12,13 +13,14 @@ import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import Slider from "@mui/material/Slider";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
 import "evm-maths";
 import { ExecutorEncoder } from "executooor";
 import { memo, useContext, useMemo, useState } from "react";
-import { Hex, parseUnits, zeroAddress } from "viem";
+import { Hex, maxUint256, parseUnits, zeroAddress } from "viem";
 import { useAccount, useSendTransaction } from "wagmi";
 
 const Position = ({
@@ -36,112 +38,140 @@ const Position = ({
 	const account = useAccount();
 	const { connected } = useSafeAppsSDK();
 
-	const marketParams = {
-		collateralToken: position.market.collateralAsset?.address ?? zeroAddress,
-		loanToken: position.market.loanAsset.address,
-		irm: position.market.irmAddress,
-		oracle: position.market.oracleAddress,
-		lltv: position.market.lltv,
-	};
+	const collateralValue = useMemo(() => {
+		if (position.market.collateralPrice == null) return;
 
-	const defaultCollateralField = position.collateral.format(collateralDecimals);
-	const [collateralField, setCollateralField] = useState(
-		defaultCollateralField,
-	);
-	const [collateralError, setCollateralError] = useState("");
-	const targetCollateral = useMemo(() => {
-		if (collateralField.split(".")[1]?.length > collateralDecimals) {
-			setCollateralError("Too many decimals");
-			return;
-		}
-
-		try {
-			const collateral = parseUnits(collateralField, collateralDecimals ?? 18);
-
-			setCollateralError("");
-
-			return collateral;
-		} catch {
-			setCollateralError("Invalid amount");
-		}
-	}, [collateralField]);
-
-	const defaultLoanField = position.borrowAssets.format(
-		position.market.loanAsset.decimals,
-	);
-	const [loanField, setLoanField] = useState(defaultLoanField);
-	const [loanError, setLoanError] = useState("");
-	const targetLoan = useMemo(() => {
-		if (loanField.split(".")[1]?.length > position.market.loanAsset.decimals) {
-			setLoanError("Too many decimals");
-			return;
-		}
-
-		try {
-			const loan = parseUnits(
-				loanField,
-				position.market.loanAsset.decimals ?? 18,
-			);
-
-			setLoanError("");
-
-			return loan;
-		} catch {
-			setLoanError("Invalid amount");
-		}
-	}, [loanField]);
-
-	const targetCollateralValue = useMemo(() => {
-		if (position.market.collateralPrice == null || targetCollateral == null)
-			return;
-
-		return targetCollateral.mulDivDown(
+		return position.collateral.mulDivDown(
 			position.market.collateralPrice,
 			parseUnits("1", 36),
 		);
-	}, [position]);
+	}, [position.collateral, position.market.collateralPrice]);
+
+	const balance = useMemo(() => {
+		if (position.market.collateralPrice == null) return;
+
+		return (collateralValue! - position.borrowAssets).mulDivDown(
+			parseUnits("1", 36),
+			position.market.collateralPrice,
+		);
+	}, [position.borrowAssets, position.market.collateralPrice, collateralValue]);
 
 	const ltv = useMemo(() => {
-		if (targetCollateralValue == null) return;
+		if (!collateralValue) return maxUint256;
 
-		return targetLoan?.wadDiv(targetCollateralValue).format(16, 3);
-	}, [targetCollateralValue, targetLoan]);
+		return position.borrowAssets.wadDiv(collateralValue);
+	}, [position.borrowAssets, collateralValue]);
 
 	const leverage = useMemo(() => {
-		if (targetLoan == null) return;
+		if (collateralValue == null) return 0;
+		if (collateralValue === position.borrowAssets) return Infinity;
 
-		return targetCollateralValue
-			?.wadDiv(targetCollateralValue - targetLoan)
+		return collateralValue
+			.wadDiv(collateralValue - position.borrowAssets)
 			.toWadFloat();
-	}, [targetCollateralValue, targetLoan]);
+	}, [position.borrowAssets, collateralValue]);
+
+	const maxLtv = useMemo(
+		() => position.market.lltv.wadMulDown(parseUnits("0.998", 18)),
+		[position.market.lltv],
+	);
+
+	const maxLeverage = useMemo(() => 1 / (1 - maxLtv.toWadFloat()), [maxLtv]);
+
+	const [withdrawField, setWithdrawField] = useState("");
+	const [withdrawError, setWithdrawError] = useState("");
+	const withdraw = useMemo(() => {
+		if (withdrawField === "") return 0n;
+
+		if (withdrawField.split(".")[1]?.length > collateralDecimals) {
+			setWithdrawError("Too many decimals");
+			return;
+		}
+
+		setWithdrawError("");
+
+		return parseUnits(withdrawField, collateralDecimals ?? 18);
+	}, [withdrawField]);
+
+	const [leverageField, setLeverageField] = useState(
+		Math.min(leverage, maxLeverage),
+	);
+
+	const targetLtv = useMemo(
+		() =>
+			BigInt.WAD -
+			BigInt.WAD.wadDivUp(parseUnits(leverageField.toFixed(18), 18)),
+		[leverageField],
+	);
+
+	const targetCollateral = useMemo(() => {
+		if (withdraw == null || balance == null) return;
+
+		return (balance - withdraw).wadDivDown(BigInt.WAD - targetLtv);
+	}, [balance, withdraw, targetLtv]);
+	const targetLoan = useMemo(() => {
+		if (targetCollateral == null || position.market.collateralPrice == null)
+			return;
+		if (targetCollateral === 0n) return 0n;
+
+		return targetLtv.wadMulDown(
+			targetCollateral.mulDivDown(
+				position.market.collateralPrice,
+				parseUnits("1", 36),
+			),
+		);
+	}, [position.market.collateralPrice, targetCollateral, targetLtv]);
+
+	const resultLtv = useMemo(() => {
+		if (
+			!position.market.collateralPrice ||
+			targetCollateral == null ||
+			targetLoan == null
+		)
+			return;
+		if (targetCollateral === 0n) return 0n;
+
+		return targetLoan.wadDiv(
+			targetCollateral.mulDivDown(
+				position.market.collateralPrice,
+				parseUnits("1", 36),
+			),
+		);
+	}, [position.market.collateralPrice, targetCollateral, targetLoan]);
+
+	const errorMessage = !connected
+		? "You must log in through the Safe App."
+		: !isValid
+			? "The executor address provided is invalid."
+			: "";
 
 	return (
 		<Paper key={position.market.uniqueKey}>
-			<Box padding={2} display="flex" alignItems="center">
-				<Box display="flex" flexDirection="column">
+			<Stack direction="row" alignItems="center" padding={2}>
+				<Stack>
 					<Typography variant="h4">
 						{position.market.collateralAsset?.symbol + " /" ?? "[IDLE]"}{" "}
 						{position.market.loanAsset.symbol}
 					</Typography>
-					<Box display="flex">
+					<Stack direction="row">
 						<Chip
 							size="small"
 							label={`${position.market.lltv.format(16, 1)}%`}
 						/>
-					</Box>
-				</Box>
+					</Stack>
+				</Stack>
 				<Box marginLeft={3}>
 					<Typography variant="h5">
 						{borrowApy ? (borrowApy * 100).toFixed(2) : 0}%
 					</Typography>
 				</Box>
-			</Box>
+			</Stack>
 			<Divider />
-			<Box padding={2} display="flex" flexDirection="column">
+			<Stack padding={2}>
 				<TextField
-					value={collateralField}
+					value={withdrawField}
 					onChange={(event) =>
-						setCollateralField(
+						setWithdrawField(
 							event.target.value
 								.replaceAll(",", ".")
 								.replaceAll(/[^0-9.]/g, "")
@@ -150,122 +180,168 @@ const Position = ({
 								.join("."),
 						)
 					}
-					error={!!collateralError}
+					error={!!withdrawError}
 					helperText={
-						collateralError || targetCollateral == null
-							? collateralError
-							: position.collateralUsd
-								? `$${(position.collateralUsd * targetCollateral.wadDiv(position.collateral).toWadFloat()).toFixed(2)}`
-								: ""
+						<Stack direction="row" justifyContent="space-between">
+							<Typography variant="caption">
+								{withdrawError || withdraw == null
+									? withdrawError
+									: position.collateralUsd
+										? `$${(position.collateralUsd * withdraw.wadDiv(position.collateral).toWadFloat()).toFixed(2)}`
+										: ""}
+							</Typography>
+							{balance && (
+								<Typography
+									variant="caption"
+									color="text.secondary"
+									onClick={() =>
+										setWithdrawField(balance.format(collateralDecimals))
+									}
+									sx={{ cursor: "pointer", textDecoration: "underline" }}
+								>
+									MAX: {balance.format(collateralDecimals, 3)}
+								</Typography>
+							)}
+						</Stack>
 					}
+					FormHelperTextProps={{ component: "div" }}
 					InputProps={{
 						endAdornment: (
 							<InputAdornment position="end">
 								{position.market.collateralAsset?.symbol}
 
-								{targetCollateral !== position.collateral && (
-									<IconButton
-										edge="end"
-										onClick={() => setCollateralField(defaultCollateralField)}
-									>
-										<RestartAltIcon />
+								{withdraw !== 0n && (
+									<IconButton edge="end" onClick={() => setWithdrawField("")}>
+										<CloseIcon />
 									</IconButton>
 								)}
 							</InputAdornment>
 						),
 					}}
-					style={{ minWidth: 300 }}
+					sx={{ minWidth: 350 }}
 					variant="outlined"
-					label="Collateral"
+					label="Withdraw"
 				/>
-				<TextField
-					value={loanField}
-					onChange={(event) =>
-						setLoanField(
-							event.target.value
-								.replaceAll(",", ".")
-								.replaceAll(/[^0-9.]/g, "")
-								.split(".")
-								.slice(0, 2)
-								.join("."),
-						)
-					}
-					error={!!loanError}
-					helperText={
-						loanError || targetLoan == null
-							? loanError
-							: position.borrowAssetsUsd
-								? `$${(position.borrowAssetsUsd * targetLoan.wadDiv(position.borrowAssets).toWadFloat()).toFixed(2)}`
-								: ""
-					}
-					InputProps={{
-						endAdornment: (
-							<InputAdornment position="end">
-								{position.market.loanAsset.symbol}
+				<Typography gutterBottom>Leverage</Typography>
+				<Stack spacing={2} direction="row" alignItems="center" sx={{ mb: 5 }}>
+					<Typography gutterBottom>low</Typography>
+					<Slider
+						value={leverageField}
+						onChange={(event, value) => setLeverageField(value as number)}
+						min={1}
+						max={maxLeverage}
+						step={0.05}
+						marks={new Array(Math.floor(maxLeverage)).fill(0).map((_, i) => ({
+							value: i + 1,
+							label: `×${i + 1}`,
+						}))}
+						valueLabelDisplay="auto"
+						valueLabelFormat={(value) => `×${value.toFixed(2)}`}
+						disabled={
+							withdraw == null || balance == null || withdraw >= balance
+						}
+					/>
+					<Typography gutterBottom>max</Typography>
+				</Stack>
+			</Stack>
+			<Divider />
+			<Stack direction="row" justifyContent="space-between" padding={2}>
+				<Stack alignItems="start">
+					<Typography variant="body2">LTV</Typography>
+					<Typography variant="body2">Price tolerance</Typography>
+				</Stack>
+				<Stack alignItems="end">
+					<Typography variant="body2">
+						{ltv.format(16, 2)}%
+						{resultLtv != null &&
+						(withdraw !== 0n || leverageField !== leverage) ? (
+							<>
+								{" "}
+								⇾ {resultLtv.format(16, 2)}% /{" "}
+								<Typography variant="caption">
+									{position.market.lltv.format(16, 1)}%
+								</Typography>
+							</>
+						) : (
+							""
+						)}
+					</Typography>
+					<Typography variant="body2">
+						{(BigInt.WAD - ltv.wadDivDown(position.market.lltv)).format(16, 2)}%
+						{resultLtv != null &&
+						(withdraw !== 0n || leverageField !== leverage) ? (
+							<>
+								{" "}
+								⇾{" "}
+								{(
+									BigInt.WAD - resultLtv.wadDivDown(position.market.lltv)
+								).format(16, 2)}
+								%
+							</>
+						) : (
+							""
+						)}
+					</Typography>
+				</Stack>
+			</Stack>
+			<Divider />
+			<Stack
+				direction="row"
+				justifyContent="space-between"
+				alignItems="end"
+				padding={2}
+			>
+				<Typography variant="caption" color="error">
+					{errorMessage}
+				</Typography>
+				<Button
+					variant="contained"
+					startIcon={withdraw === balance ? <CloseIcon /> : <EditIcon />}
+					disableElevation
+					onClick={async () => {
+						if (!isValid) return;
 
-								{targetLoan !== position.borrowAssets && (
-									<IconButton
-										edge="end"
-										onClick={() => setLoanField(defaultLoanField)}
-									>
-										<RestartAltIcon />
-									</IconButton>
-								)}
-							</InputAdornment>
-						),
+						const encoder = new ExecutorEncoder(executor, provider);
+
+						if (connected) {
+						} else {
+							const marketParams = {
+								collateralToken:
+									position.market.collateralAsset?.address ?? zeroAddress,
+								loanToken: position.market.loanAsset.address,
+								irm: position.market.irmAddress,
+								oracle: position.market.oracleAddress,
+								lltv: position.market.lltv,
+							};
+
+							const { value, data } = await encoder
+								.morphoBlueRepay(
+									position.market.morphoBlue.address,
+									marketParams,
+									0n,
+									position.borrowShares,
+									account.address!,
+									[],
+								)
+								.morphoBlueWithdrawCollateral(
+									position.market.morphoBlue.address,
+									marketParams,
+									position.collateral,
+									account.address!,
+									account.address!,
+								)
+								.populateExec();
+
+							console.log({ to: executor, value, data: data as Hex });
+
+							sendTransaction({ to: executor, value, data: data as Hex });
+						}
 					}}
-					style={{ minWidth: 300 }}
-					variant="outlined"
-					label="Loan"
-				/>
-				<Typography>LTV: {ltv}%</Typography>
-				<Typography>Leverage: {leverage}</Typography>
-				<Slider
-					value={leverage ?? 0}
-					valueLabelDisplay="auto"
-					min={1}
-					max={10}
-				/>
-				<Box display="flex" justifyItems="right">
-					<Button
-						variant="contained"
-						disableElevation
-						onClick={async () => {
-							if (!isValid) return;
-
-							const encoder = new ExecutorEncoder(executor, provider);
-
-							if (connected) {
-							} else {
-								const { value, data } = await encoder
-									.morphoBlueRepay(
-										position.market.morphoBlue.address,
-										marketParams,
-										0n,
-										position.borrowShares,
-										account.address!,
-										[],
-									)
-									.morphoBlueWithdrawCollateral(
-										position.market.morphoBlue.address,
-										marketParams,
-										position.collateral,
-										account.address!,
-										account.address!,
-									)
-									.populateExec();
-
-								console.log({ to: executor, value, data: data as Hex });
-
-								sendTransaction({ to: executor, value, data: data as Hex });
-							}
-						}}
-						disabled={!isValid}
-					>
-						Close position
-					</Button>
-				</Box>
-			</Box>
+					disabled={!isValid || !connected}
+				>
+					{withdraw === balance ? "Close" : "Adjust"}
+				</Button>
+			</Stack>
 		</Paper>
 	);
 };
