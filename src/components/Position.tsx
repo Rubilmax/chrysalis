@@ -1,19 +1,24 @@
 "use client";
 
-import React, { memo, useContext, useMemo } from "react";
-import { Hex, parseUnits, zeroAddress } from "viem";
-import "evm-maths";
 import { ExecutorContext } from "@/app/providers";
 import { useEthersProvider } from "@/ethers";
 import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
+import Slider from "@mui/material/Slider";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
+import "evm-maths";
 import { ExecutorEncoder } from "executooor";
+import { memo, useContext, useMemo, useState } from "react";
+import { Hex, parseUnits, zeroAddress } from "viem";
 import { useAccount, useSendTransaction } from "wagmi";
 
 const Position = ({
@@ -21,30 +26,8 @@ const Position = ({
 }: {
 	position: GetUserMarketPositionsQuery["userByAddress"]["marketPositions"][number];
 }) => {
-	const collateralValue = useMemo(() => {
-		if (position.market.collateralPrice == null) return null;
-
-		return position.collateral.mulDivDown(
-			position.market.collateralPrice,
-			parseUnits("1", 36),
-		);
-	}, [position]);
-
-	const ltv = useMemo(() => {
-		if (collateralValue == null) return "∞";
-
-		return position.borrowAssets.wadDiv(collateralValue).format(16, 3);
-	}, [position]);
-
-	const leverage = useMemo(() => {
-		if (collateralValue == null) return "∞";
-
-		return collateralValue
-			.wadDiv(collateralValue - position.borrowAssets)
-			.formatWad(2);
-	}, [position]);
-
 	const borrowApy = position.market.dailyApys?.borrowApy;
+	const collateralDecimals = position.market.collateralAsset?.decimals ?? 0;
 
 	const { sendTransaction } = useSendTransaction();
 	const provider = useEthersProvider();
@@ -60,6 +43,77 @@ const Position = ({
 		oracle: position.market.oracleAddress,
 		lltv: position.market.lltv,
 	};
+
+	const defaultCollateralField = position.collateral.format(collateralDecimals);
+	const [collateralField, setCollateralField] = useState(
+		defaultCollateralField,
+	);
+	const [collateralError, setCollateralError] = useState("");
+	const targetCollateral = useMemo(() => {
+		if (collateralField.split(".")[1]?.length > collateralDecimals) {
+			setCollateralError("Too many decimals");
+			return;
+		}
+
+		try {
+			const collateral = parseUnits(collateralField, collateralDecimals ?? 18);
+
+			setCollateralError("");
+
+			return collateral;
+		} catch {
+			setCollateralError("Invalid amount");
+		}
+	}, [collateralField]);
+
+	const defaultLoanField = position.borrowAssets.format(
+		position.market.loanAsset.decimals,
+	);
+	const [loanField, setLoanField] = useState(defaultLoanField);
+	const [loanError, setLoanError] = useState("");
+	const targetLoan = useMemo(() => {
+		if (loanField.split(".")[1]?.length > position.market.loanAsset.decimals) {
+			setLoanError("Too many decimals");
+			return;
+		}
+
+		try {
+			const loan = parseUnits(
+				loanField,
+				position.market.loanAsset.decimals ?? 18,
+			);
+
+			setLoanError("");
+
+			return loan;
+		} catch {
+			setLoanError("Invalid amount");
+		}
+	}, [loanField]);
+
+	const targetCollateralValue = useMemo(() => {
+		if (position.market.collateralPrice == null || targetCollateral == null)
+			return;
+
+		return targetCollateral.mulDivDown(
+			position.market.collateralPrice,
+			parseUnits("1", 36),
+		);
+	}, [position]);
+
+	const ltv = useMemo(() => {
+		if (targetCollateralValue == null) return;
+
+		return targetLoan?.wadDiv(targetCollateralValue).format(16, 3);
+	}, [targetCollateralValue, targetLoan]);
+
+	const leverage = useMemo(() => {
+		if (targetLoan == null) return;
+
+		return targetCollateralValue
+			?.wadDiv(targetCollateralValue - targetLoan)
+			.toWadFloat();
+	}, [targetCollateralValue, targetLoan]);
 
 	return (
 		<Paper key={position.market.uniqueKey}>
@@ -84,23 +138,94 @@ const Position = ({
 			</Box>
 			<Divider />
 			<Box padding={2} display="flex" flexDirection="column">
-				<Typography>
-					Collateral:{" "}
-					{position.collateral.format(
-						position.market.collateralAsset?.decimals,
-						3,
-					)}{" "}
-					($
-					{position.collateralUsd?.toFixed(2)})
-				</Typography>
-				<Typography>
-					Borrow:{" "}
-					{position.borrowAssets.format(position.market.loanAsset.decimals, 3)}{" "}
-					($
-					{position.borrowAssetsUsd?.toFixed(2)})
-				</Typography>
+				<TextField
+					value={collateralField}
+					onChange={(event) =>
+						setCollateralField(
+							event.target.value
+								.replaceAll(",", ".")
+								.replaceAll(/[^0-9.]/g, "")
+								.split(".")
+								.slice(0, 2)
+								.join("."),
+						)
+					}
+					error={!!collateralError}
+					helperText={
+						collateralError || targetCollateral == null
+							? collateralError
+							: position.collateralUsd
+								? `$${(position.collateralUsd * targetCollateral.wadDiv(position.collateral).toWadFloat()).toFixed(2)}`
+								: ""
+					}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								{position.market.collateralAsset?.symbol}
+
+								{targetCollateral !== position.collateral && (
+									<IconButton
+										edge="end"
+										onClick={() => setCollateralField(defaultCollateralField)}
+									>
+										<RestartAltIcon />
+									</IconButton>
+								)}
+							</InputAdornment>
+						),
+					}}
+					style={{ minWidth: 300 }}
+					variant="outlined"
+					label="Collateral"
+				/>
+				<TextField
+					value={loanField}
+					onChange={(event) =>
+						setLoanField(
+							event.target.value
+								.replaceAll(",", ".")
+								.replaceAll(/[^0-9.]/g, "")
+								.split(".")
+								.slice(0, 2)
+								.join("."),
+						)
+					}
+					error={!!loanError}
+					helperText={
+						loanError || targetLoan == null
+							? loanError
+							: position.borrowAssetsUsd
+								? `$${(position.borrowAssetsUsd * targetLoan.wadDiv(position.borrowAssets).toWadFloat()).toFixed(2)}`
+								: ""
+					}
+					InputProps={{
+						endAdornment: (
+							<InputAdornment position="end">
+								{position.market.loanAsset.symbol}
+
+								{targetLoan !== position.borrowAssets && (
+									<IconButton
+										edge="end"
+										onClick={() => setLoanField(defaultLoanField)}
+									>
+										<RestartAltIcon />
+									</IconButton>
+								)}
+							</InputAdornment>
+						),
+					}}
+					style={{ minWidth: 300 }}
+					variant="outlined"
+					label="Loan"
+				/>
 				<Typography>LTV: {ltv}%</Typography>
 				<Typography>Leverage: {leverage}</Typography>
+				<Slider
+					value={leverage ?? 0}
+					valueLabelDisplay="auto"
+					min={1}
+					max={10}
+				/>
 				<Box display="flex" justifyItems="right">
 					<Button
 						variant="contained"

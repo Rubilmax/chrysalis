@@ -39,7 +39,7 @@ const NavBar = () => {
 				<Image
 					src="./chrysalis.png"
 					alt="Logo"
-					width={26}
+					width={40}
 					height={40}
 					style={{ marginRight: "1rem" }}
 				/>
@@ -62,7 +62,7 @@ const NavBar = () => {
 				<Search>
 					<TextField
 						value={executor ?? ""}
-						placeholder="Executor address"
+						placeholder="0x..."
 						onChange={(event) => setExecutor(event.target.value)}
 						error={invalidExecutor}
 						helperText={invalidExecutor ? "Invalid address" : ""}
