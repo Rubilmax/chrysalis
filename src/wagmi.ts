@@ -1,6 +1,6 @@
 import { getDefaultConfig } from "connectkit";
 import { createConfig } from "wagmi";
-import { mainnet, sepolia } from "wagmi/chains";
+import { base, mainnet, sepolia } from "wagmi/chains";
 import { coinbaseWallet, injected, safe } from "wagmi/connectors";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
@@ -9,7 +9,7 @@ const appLogoUrl = "https://rubilmax.github.io/chrysalis/chrysalis.png";
 export const config = createConfig(
 	getDefaultConfig({
 		walletConnectProjectId,
-		chains: [mainnet, sepolia],
+		chains: [mainnet, sepolia, base],
 		connectors: [
 			injected(),
 			coinbaseWallet({ appName: "Chrysalis", appLogoUrl }),

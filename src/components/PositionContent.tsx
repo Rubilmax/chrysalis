@@ -71,18 +71,20 @@ const PositionContent = ({
 	const maxLeverage = useMemo(() => 1 / (1 - maxLtv.toWadFloat()), [maxLtv]);
 
 	const [withdrawField, setWithdrawField] = useState("");
-	const [withdrawError, setWithdrawError] = useState("");
-	const withdraw = useMemo(() => {
-		if (withdrawField === "") return 0n;
+	const { withdraw, withdrawError } = useMemo(() => {
+		if (withdrawField === "") return { withdraw: 0n };
 
-		if (withdrawField.split(".")[1]?.length > market.collateralAsset.decimals) {
-			setWithdrawError("Too many decimals");
-			return;
-		}
+		const [unit, decimals] = withdrawField.split(".");
+		if (decimals && decimals.length > market.collateralAsset.decimals)
+			return { withdrawError: "Too many decimals" };
 
-		setWithdrawError("");
+		const withdraw = parseUnits(
+			withdrawField,
+			market.collateralAsset.decimals ?? 18,
+		);
+		if (withdraw > balance) return { withdrawError: "Insufficient balance" };
 
-		return parseUnits(withdrawField, market.collateralAsset.decimals ?? 18);
+		return { withdraw };
 	}, [withdrawField]);
 
 	const [leverageField, setLeverageField] = useState(
@@ -301,7 +303,7 @@ const PositionContent = ({
 							sendTransaction({ to: executor, value, data: data as Hex });
 						}
 					}}
-					disabled={!isValid || !connected}
+					disabled={!isValid || !connected || !!withdrawError}
 				>
 					{withdraw === balance ? "Close" : "Adjust"}
 				</Button>

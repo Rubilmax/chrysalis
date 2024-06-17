@@ -1,17 +1,15 @@
 "use client";
 
 import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import "evm-maths";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Avatar from "@mui/material/Avatar";
 import AvatarGroup from "@mui/material/AvatarGroup";
+import Chip from "@mui/material/Chip";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
+import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { memo } from "react";
 import PositionContent from "./PositionContent";
 
@@ -75,23 +73,26 @@ const PositionCard = ({ position }: { position: Position }) => {
 				<Stack alignItems="center" ml={2}>
 					<Stack direction="row" justifyContent="space-between">
 						<Stack alignItems="end">
-							<Typography variant="caption">1d</Typography>
-							<Typography variant="caption">7d</Typography>
 							<Typography variant="caption">30d</Typography>
+							<Typography variant="caption">7d</Typography>
+							<Typography variant="caption">1d</Typography>
 						</Stack>
 						<Stack ml={2}>
 							<Typography variant="body2">
-								{dailyBorrowApy ? (dailyBorrowApy * 100).toFixed(2) : 0}%
+								{monthlyBorrowApy ? (monthlyBorrowApy * 100).toFixed(2) : 0}%
 							</Typography>
 							<Typography variant="body2">
 								{weeklyBorrowApy ? (weeklyBorrowApy * 100).toFixed(2) : 0}%
 							</Typography>
 							<Typography variant="body2">
-								{monthlyBorrowApy ? (monthlyBorrowApy * 100).toFixed(2) : 0}%
+								{dailyBorrowApy ? (dailyBorrowApy * 100).toFixed(2) : 0}%
 							</Typography>
 						</Stack>
 					</Stack>
-					<Typography variant="h6" mt={1}>
+					<Typography variant="caption" mt={1}>
+						now
+					</Typography>
+					<Typography variant="h6" mt={-1}>
 						{borrowApy ? (borrowApy * 100).toFixed(2) : 0}%
 					</Typography>
 				</Stack>
