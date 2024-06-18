@@ -1,6 +1,6 @@
 "use client";
 
-import { ExecutorContext } from "@/app/providers";
+import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { useEthersProvider } from "@/ethers";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";

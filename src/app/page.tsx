@@ -11,7 +11,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-function App() {
+const App = () => {
 	const account = useAccount();
 	const chainId = useChainId();
 
@@ -66,6 +66,6 @@ function App() {
 			</Container>
 		</>
 	);
-}
+};
 
 export default App;

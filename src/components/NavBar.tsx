@@ -6,7 +6,7 @@ import Toolbar from "@mui/material/Toolbar";
 import { ConnectKitButton } from "connectkit";
 import React, { memo, useContext, useState } from "react";
 import "evm-maths";
-import { ExecutorContext } from "@/app/providers";
+import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import Alert from "@mui/material/Alert";
 import AppBar from "@mui/material/AppBar";

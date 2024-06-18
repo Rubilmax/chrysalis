@@ -1,17 +1,5 @@
-"use client";
-
-import { createHash } from "crypto";
 import { executorDeployData } from "@/executor";
-import { cache } from "@/graphql/cache";
-import theme from "@/theme";
-import { config } from "@/wagmi";
-import { ApolloClient, ApolloProvider, HttpLink } from "@apollo/client";
-import { createPersistedQueryLink } from "@apollo/client/link/persisted-queries";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
-import { ThemeProvider } from "@mui/material/styles";
-import { SafeProvider, useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConnectKitProvider } from "connectkit";
+import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
 import {
 	type Dispatch,
 	type ReactNode,
@@ -22,23 +10,8 @@ import {
 	useState,
 } from "react";
 import { Address, isAddress } from "viem";
-import {
-	type State,
-	WagmiProvider,
-	useDeployContract,
-	useWaitForTransactionReceipt,
-} from "wagmi";
 import { DeployContractErrorType } from "wagmi/actions";
-
-const queryClient = new QueryClient();
-
-const apolloClient = new ApolloClient({
-	cache,
-	link: createPersistedQueryLink({
-		sha256: (query) => createHash("sha256").update(query).digest("hex"),
-		useGETForHashedQueries: true,
-	}).concat(new HttpLink({ uri: "https://blue-api.morpho.org/graphql" })),
-});
+import { useDeployContract } from "./NotificationContext";
 
 export const ExecutorContext = createContext<
 	| {
@@ -69,8 +42,7 @@ export const ExecutorContextProvider = ({
 	children,
 }: { children: ReactNode }) => {
 	const { connected, sdk } = useSafeAppsSDK();
-	const { data: hash, status, error, deployContract } = useDeployContract();
-	const { data: receipt } = useWaitForTransactionReceipt({ hash });
+	const { request, receipt } = useDeployContract();
 	const [executor, setExecutor] = useState<string>();
 
 	useEffect(() => {
@@ -99,7 +71,7 @@ export const ExecutorContextProvider = ({
 			// 	],
 			// });
 		} else {
-			deployContract({
+			request.deployContract({
 				...executorDeployData,
 				args: [owner],
 			});
@@ -107,9 +79,9 @@ export const ExecutorContextProvider = ({
 	}, []);
 
 	useEffect(() => {
-		if (!receipt?.contractAddress) return;
+		if (!receipt.data?.contractAddress) return;
 
-		setExecutor(receipt.contractAddress);
+		setExecutor(receipt.data.contractAddress);
 	}, [receipt]);
 
 	return (
@@ -120,44 +92,21 @@ export const ExecutorContextProvider = ({
 							executor: executor as Address,
 							setExecutor,
 							deployExecutor,
-							status,
-							error,
+							status: request.status,
+							error: request.error,
 							isValid: true,
 						}
 					: {
 							executor,
 							setExecutor,
 							deployExecutor,
-							status,
-							error,
+							status: request.status,
+							error: request.error,
 							isValid: false,
 						}
 			}
 		>
 			{children}
 		</ExecutorContext.Provider>
-	);
-};
-
-export const Providers = ({
-	children,
-	initialState,
-}: { children: ReactNode; initialState?: State }) => {
-	return (
-		<WagmiProvider config={config} initialState={initialState}>
-			<QueryClientProvider client={queryClient}>
-				<SafeProvider>
-					<ConnectKitProvider>
-						<ApolloProvider client={apolloClient}>
-							<AppRouterCacheProvider>
-								<ThemeProvider theme={theme}>
-									<ExecutorContextProvider>{children}</ExecutorContextProvider>
-								</ThemeProvider>
-							</AppRouterCacheProvider>
-						</ApolloProvider>
-					</ConnectKitProvider>
-				</SafeProvider>
-			</QueryClientProvider>
-		</WagmiProvider>
 	);
 };
