@@ -1,13 +1,11 @@
 "use client";
 
 import { useGetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { useAccount, useChainId } from "wagmi";
 import "evm-maths";
-import DataLink from "@/components/DataLink";
 import NavBar from "@/components/NavBar";
 import PositionCard from "@/components/PositionCard";
-import { createToast, updateToast } from "@/toast";
 import Container from "@mui/material/Container";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";

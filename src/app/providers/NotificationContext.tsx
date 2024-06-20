@@ -1,7 +1,5 @@
 import DataLink from "@/components/DataLink";
 import { createToast, updateToast } from "@/toast";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import Typography from "@mui/material/Typography";
 import React, { type ReactNode, createContext, useEffect, useRef } from "react";
 import { Id } from "react-toastify";
 import {
@@ -144,19 +142,7 @@ export const useDeployContract = <
 			render: (
 				<>
 					Transaction included at block #{receipt.data.blockNumber} with hash:{" "}
-					{explorerUrl ? (
-						<Typography
-							component="a"
-							href={new URL(`/tx/${receipt.data}`, explorerUrl).toString()}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{receipt.data.transactionHash}{" "}
-							<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 1 }} />
-						</Typography>
-					) : (
-						receipt.data.transactionHash
-					)}
+					{<DataLink data={receipt.data.transactionHash} type="tx" />}
 				</>
 			),
 			autoClose: 5000,
