@@ -1,19 +1,43 @@
 import DataLink from "@/components/DataLink";
 import { createToast, updateToast } from "@/toast";
-import React, { type ReactNode, createContext, useEffect, useRef } from "react";
+import { getDefaultConfig } from "connectkit";
+import React from "react";
 import { Id } from "react-toastify";
+import { createConfig } from "wagmi";
 import {
 	Config,
 	ResolvedRegister,
 	UseDeployContractParameters,
+	UseDeployContractReturnType,
 	UseSendTransactionParameters,
+	UseSendTransactionReturnType,
 	useAccount,
 	useDeployContract as useWagmiDeployContract,
 	useSendTransaction as useWagmiSendTransaction,
 	useWaitForTransactionReceipt as useWagmiWaitForTransactionReceipt,
 } from "wagmi";
+import { base, mainnet, sepolia } from "wagmi/chains";
+import { coinbaseWallet, injected, safe } from "wagmi/connectors";
 
-export const NotificationContext = createContext<{}>({});
+const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
+const appLogoUrl = "https://rubilmax.github.io/chrysalis/chrysalis.png";
+
+export const config = createConfig(
+	getDefaultConfig({
+		walletConnectProjectId,
+		chains: [mainnet, sepolia, base],
+		connectors: [
+			injected(),
+			coinbaseWallet({ appName: "Chrysalis", appLogoUrl }),
+			safe(),
+		],
+		ssr: true,
+		appName: "Chrysalis",
+		appDescription: "Minimalist widget for Morpho Blue",
+		appUrl: "https://rubilmax.github.io/chrysalis/",
+		appIcon: appLogoUrl, // no bigger than 1024x1024px (max. 1MB)
+	}),
+);
 
 export const useSendTransaction = <
 	config extends Config = ResolvedRegister["config"],
@@ -21,35 +45,11 @@ export const useSendTransaction = <
 >(
 	parameters: UseSendTransactionParameters<config, context> = {},
 ) => {
-	const res = useWagmiSendTransaction(parameters);
+	const request = useWagmiSendTransaction(parameters);
 
-	console.log(res.data);
-	console.log(res.status);
-	console.log(res.error);
+	const receipt = useTransactionToast(request);
 
-	// useEffect(() => {
-	// 	if (hash) toast.
-	// }, [sendStatus]);
-
-	// useEffect(() => {
-	// 	switch (res.status) {
-	// 		case "error":
-	// 			toast.error(res.error.message);
-	// 			break;
-	// 		case "pending":
-	// 			if (res.data)
-	// 				updateToast(res.data, { isLoading: true, type: "default" });
-	// 			break;
-	// 		case "success":
-	// 			if (res.data)
-	// 				updateToast(res.data, { isLoading: true, type: "default" });
-	// 			break;
-	// 		default:
-	// 			break;
-	// 	}
-	// }, [res.status, res.error]);
-
-	return res;
+	return { request, receipt };
 };
 
 export const useDeployContract = <
@@ -58,15 +58,29 @@ export const useDeployContract = <
 >(
 	parameters: UseDeployContractParameters<config, context> = {},
 ) => {
-	const toastId = useRef<Id>();
+	const request = useWagmiDeployContract(parameters);
+
+	const receipt = useTransactionToast(request);
+
+	return { request, receipt };
+};
+
+export const useTransactionToast = <
+	config extends Config = ResolvedRegister["config"],
+	context = unknown,
+>(
+	request:
+		| UseDeployContractReturnType<config, context>
+		| UseSendTransactionReturnType<config, context>,
+) => {
+	const toastId = React.useRef<Id>();
 	const account = useAccount();
 
-	const request = useWagmiDeployContract(parameters);
 	const receipt = useWagmiWaitForTransactionReceipt({ hash: request.data });
 
 	// Request
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (!request.isPending) return;
 
 		toastId.current = createToast(`Waiting for signature...`, {
@@ -75,7 +89,7 @@ export const useDeployContract = <
 		});
 	}, [toastId, request.isPending]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (toastId.current == null || !request.isIdle) return;
 
 		updateToast(toastId.current, {
@@ -86,7 +100,7 @@ export const useDeployContract = <
 		});
 	}, [toastId, request.isIdle]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (toastId.current == null || !request.isError) return;
 
 		console.error(request.error);
@@ -99,10 +113,8 @@ export const useDeployContract = <
 		});
 	}, [toastId, request.isError, request.error]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (toastId.current == null || !request.isSuccess) return;
-
-		const explorerUrl = account.chain?.blockExplorers?.default.url;
 
 		updateToast(toastId.current, {
 			type: "success",
@@ -114,11 +126,11 @@ export const useDeployContract = <
 				</>
 			),
 		});
-	}, [toastId, account.chain?.blockExplorers?.default.url, request.isSuccess]);
+	}, [toastId, request.isSuccess]);
 
 	// Receipt
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (toastId.current == null || !receipt.isError) return;
 
 		console.error(receipt.error);
@@ -131,7 +143,7 @@ export const useDeployContract = <
 		});
 	}, [toastId, receipt.isError, receipt.error]);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (toastId.current == null || !receipt.isSuccess) return;
 
 		const explorerUrl = account.chain?.blockExplorers?.default.url;
@@ -155,15 +167,11 @@ export const useDeployContract = <
 		receipt.data?.transactionHash,
 	]);
 
-	return { request, receipt };
+	return receipt;
 };
 
-export const NotificationContextProvider = ({
-	children,
-}: { children: ReactNode }) => {
-	return (
-		<NotificationContext.Provider value={{}}>
-			{children}
-		</NotificationContext.Provider>
-	);
-};
+declare module "wagmi" {
+	interface Register {
+		config: typeof config;
+	}
+}

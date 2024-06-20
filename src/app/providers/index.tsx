@@ -16,7 +16,6 @@ import { type ReactNode } from "react";
 import { Slide, ToastContainer } from "react-toastify";
 import { type State, WagmiProvider } from "wagmi";
 import { ExecutorContextProvider } from "./ExecutorContext";
-import { NotificationContextProvider } from "./NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -58,11 +57,7 @@ export const Providers = ({
 										pauseOnHover
 									/>
 
-									<NotificationContextProvider>
-										<ExecutorContextProvider>
-											{children}
-										</ExecutorContextProvider>
-									</NotificationContextProvider>
+									<ExecutorContextProvider>{children}</ExecutorContextProvider>
 								</ThemeProvider>
 							</AppRouterCacheProvider>
 						</ApolloProvider>

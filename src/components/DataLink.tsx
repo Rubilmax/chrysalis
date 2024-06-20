@@ -2,13 +2,13 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import { memo, useCallback } from "react";
+import React from "react";
 import { useAccount } from "wagmi";
 
 const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
 	const account = useAccount();
 
-	const copyToClipboard = useCallback(
+	const copyToClipboard = React.useCallback(
 		async (event: React.MouseEvent) => {
 			event.stopPropagation();
 
@@ -46,4 +46,4 @@ const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
 	);
 };
 
-export default memo(DataLink);
+export default React.memo(DataLink);

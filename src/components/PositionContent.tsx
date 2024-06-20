@@ -1,5 +1,3 @@
-"use client";
-
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { useEthersProvider } from "@/ethers";
 import CloseIcon from "@mui/icons-material/Close";
@@ -14,10 +12,11 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
 import "evm-maths";
+import { useSendTransaction } from "@/wagmi";
 import { ExecutorEncoder } from "executooor";
-import { memo, useContext, useMemo, useState } from "react";
+import React from "react";
 import { Hex, maxUint256, parseUnits, zeroAddress } from "viem";
-import { useAccount, useSendTransaction } from "wagmi";
+import { useAccount } from "wagmi";
 import { Position } from "./PositionCard";
 
 const PositionContent = ({
@@ -30,19 +29,21 @@ const PositionContent = ({
 		};
 	};
 }) => {
-	const { sendTransaction } = useSendTransaction();
+	const {
+		request: { sendTransaction },
+	} = useSendTransaction();
 	const provider = useEthersProvider();
-	const { executor, isValid } = useContext(ExecutorContext);
+	const { executor, isValid } = React.useContext(ExecutorContext);
 
 	const account = useAccount();
 	const { connected } = useSafeAppsSDK();
 
-	const collateralValue = useMemo(
+	const collateralValue = React.useMemo(
 		() => collateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
 		[collateral, market.collateralPrice],
 	);
 
-	const balance = useMemo(
+	const balance = React.useMemo(
 		() =>
 			(collateralValue - borrowAssets).mulDivDown(
 				parseUnits("1", 36),
@@ -51,27 +52,30 @@ const PositionContent = ({
 		[borrowAssets, market.collateralPrice, collateralValue],
 	);
 
-	const ltv = useMemo(() => {
+	const ltv = React.useMemo(() => {
 		if (collateralValue === 0n) return maxUint256;
 
 		return borrowAssets.wadDiv(collateralValue);
 	}, [borrowAssets, collateralValue]);
 
-	const leverage = useMemo(() => {
+	const leverage = React.useMemo(() => {
 		if (collateralValue === borrowAssets) return Infinity;
 
 		return collateralValue.wadDiv(collateralValue - borrowAssets).toWadFloat();
 	}, [borrowAssets, collateralValue]);
 
-	const maxLtv = useMemo(
+	const maxLtv = React.useMemo(
 		() => market.lltv.wadMulDown(parseUnits("0.998", 18)),
 		[market.lltv],
 	);
 
-	const maxLeverage = useMemo(() => 1 / (1 - maxLtv.toWadFloat()), [maxLtv]);
+	const maxLeverage = React.useMemo(
+		() => 1 / (1 - maxLtv.toWadFloat()),
+		[maxLtv],
+	);
 
-	const [withdrawField, setWithdrawField] = useState("");
-	const { withdraw, withdrawError } = useMemo(() => {
+	const [withdrawField, setWithdrawField] = React.useState("");
+	const { withdraw, withdrawError } = React.useMemo(() => {
 		if (withdrawField === "") return { withdraw: 0n };
 
 		const [unit, decimals] = withdrawField.split(".");
@@ -87,23 +91,23 @@ const PositionContent = ({
 		return { withdraw };
 	}, [withdrawField]);
 
-	const [leverageField, setLeverageField] = useState(
+	const [leverageField, setLeverageField] = React.useState(
 		Math.min(leverage, maxLeverage),
 	);
 
-	const targetLtv = useMemo(
+	const targetLtv = React.useMemo(
 		() =>
 			BigInt.WAD -
 			BigInt.WAD.wadDivUp(parseUnits(leverageField.toFixed(18), 18)),
 		[leverageField],
 	);
 
-	const targetCollateral = useMemo(() => {
+	const targetCollateral = React.useMemo(() => {
 		if (withdraw == null) return;
 
 		return (balance - withdraw).wadDivDown(BigInt.WAD - targetLtv);
 	}, [balance, withdraw, targetLtv]);
-	const targetLoan = useMemo(() => {
+	const targetLoan = React.useMemo(() => {
 		if (targetCollateral == null) return;
 		if (targetCollateral === 0n) return 0n;
 
@@ -112,7 +116,7 @@ const PositionContent = ({
 		);
 	}, [market.collateralPrice, targetCollateral, targetLtv]);
 
-	const resultLtv = useMemo(() => {
+	const resultLtv = React.useMemo(() => {
 		if (
 			market.collateralPrice === 0n ||
 			targetCollateral == null ||
@@ -312,4 +316,4 @@ const PositionContent = ({
 	);
 };
 
-export default memo(PositionContent);
+export default React.memo(PositionContent);

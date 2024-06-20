@@ -1,10 +1,8 @@
-"use client";
-
 import CloseIcon from "@mui/icons-material/Close";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Toolbar from "@mui/material/Toolbar";
 import { ConnectKitButton } from "connectkit";
-import React, { memo, useContext, useState } from "react";
+import React from "react";
 import "evm-maths";
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
@@ -26,11 +24,11 @@ import { useAccount } from "wagmi";
 const NavBar = () => {
 	const account = useAccount();
 	const { executor, setExecutor, deployExecutor, status, isValid } =
-		useContext(ExecutorContext);
+		React.useContext(ExecutorContext);
 
 	const invalidExecutor = executor != null && !isValid;
 
-	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [settingsOpen, setSettingsOpen] = React.useState(false);
 
 	return (
 		<AppBar position="static" elevation={0} color="secondary">
@@ -130,4 +128,4 @@ const NavBar = () => {
 	);
 };
 
-export default memo(NavBar);
+export default React.memo(NavBar);

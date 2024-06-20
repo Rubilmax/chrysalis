@@ -1,22 +1,14 @@
 import { executorDeployData } from "@/executor";
+import { useDeployContract } from "@/wagmi";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
-import {
-	type Dispatch,
-	type ReactNode,
-	type SetStateAction,
-	createContext,
-	useCallback,
-	useEffect,
-	useState,
-} from "react";
+import React from "react";
 import { Address, isAddress } from "viem";
 import { DeployContractErrorType } from "wagmi/actions";
-import { useDeployContract } from "./NotificationContext";
 
-export const ExecutorContext = createContext<
+export const ExecutorContext = React.createContext<
 	| {
 			executor: Address;
-			setExecutor: Dispatch<SetStateAction<string | undefined>>;
+			setExecutor: React.Dispatch<React.SetStateAction<string | undefined>>;
 			deployExecutor: (owner: Address) => Promise<void>;
 			status: "idle" | "pending" | "error" | "success";
 			error: DeployContractErrorType | null;
@@ -24,7 +16,7 @@ export const ExecutorContext = createContext<
 	  }
 	| {
 			executor?: string;
-			setExecutor: Dispatch<SetStateAction<string | undefined>>;
+			setExecutor: React.Dispatch<React.SetStateAction<string | undefined>>;
 			deployExecutor: (owner: Address) => Promise<void>;
 			status: "idle" | "pending" | "error" | "success";
 			error: DeployContractErrorType | null;
@@ -40,45 +32,48 @@ export const ExecutorContext = createContext<
 
 export const ExecutorContextProvider = ({
 	children,
-}: { children: ReactNode }) => {
+}: { children: React.ReactNode }) => {
 	const { connected, sdk } = useSafeAppsSDK();
 	const { request, receipt } = useDeployContract();
-	const [executor, setExecutor] = useState<string>();
+	const [executor, setExecutor] = React.useState<string>();
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const storedExecutor = localStorage.getItem("executor");
 		if (storedExecutor == null) return;
 
 		setExecutor(storedExecutor);
 	}, []);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (executor == null) return;
 
 		localStorage.setItem("executor", executor);
 	}, [executor]);
 
-	const deployExecutor = useCallback(async (owner: Address) => {
-		if (connected) {
-			// const tx = await sdk.txs.send({
-			// 	txs: [
-			// 		{
-			// 			data: encodeDeployData({
-			//				...executorDeployData,
-			// 				args: [owner],
-			// 			}),
-			// 		},
-			// 	],
-			// });
-		} else {
-			request.deployContract({
-				...executorDeployData,
-				args: [owner],
-			});
-		}
-	}, []);
+	const deployExecutor = React.useCallback(
+		async (owner: Address) => {
+			if (connected) {
+				// const tx = await sdk.txs.send({
+				// 	txs: [
+				// 		{
+				// 			data: encodeDeployData({
+				//				...executorDeployData,
+				// 				args: [owner],
+				// 			}),
+				// 		},
+				// 	],
+				// });
+			} else {
+				request.deployContract({
+					...executorDeployData,
+					args: [owner],
+				});
+			}
+		},
+		[request.deployContract],
+	);
 
-	useEffect(() => {
+	React.useEffect(() => {
 		if (!receipt.data?.contractAddress) return;
 
 		setExecutor(receipt.data.contractAddress);

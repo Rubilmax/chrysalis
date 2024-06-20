@@ -1,5 +1,3 @@
-"use client";
-
 import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Avatar from "@mui/material/Avatar";
@@ -10,7 +8,7 @@ import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { memo } from "react";
+import React from "react";
 import PositionContent from "./PositionContent";
 
 export type Position =
@@ -115,4 +113,4 @@ const PositionCard = ({ position }: { position: Position }) => {
 	);
 };
 
-export default memo(PositionCard);
+export default React.memo(PositionCard);
