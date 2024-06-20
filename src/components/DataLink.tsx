@@ -23,12 +23,15 @@ const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
 		<>
 			<Typography
 				variant="body2"
+				color="inherit"
+				fontWeight={500}
 				component="a"
 				href={
 					explorerUrl && new URL(`/${type}/${data}`, explorerUrl).toString()
 				}
 				target="_blank"
 				rel="noopener noreferrer"
+				sx={{ textDecoration: "none" }}
 				noWrap
 			>
 				{data.substring(0, 6)}...{data.substring(data.length - 4)}
@@ -36,7 +39,7 @@ const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
 					<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 0.5 }} />
 				)}
 			</Typography>
-			<IconButton sx={{ fontSize: 16, marginLeft: 1 }}>
+			<IconButton sx={{ fontSize: 14, marginLeft: 0.5 }}>
 				<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
 			</IconButton>
 		</>

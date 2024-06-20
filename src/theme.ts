@@ -33,6 +33,29 @@ const theme = createTheme({
 			main: "#121212",
 		},
 	},
+	components: {
+		MuiSnackbar: {
+			styleOverrides: {
+				root: {
+					position: "relative",
+					marginTop: 10,
+				},
+			},
+		},
+		MuiSnackbarContent: {
+			styleOverrides: {
+				root: {
+					padding: 0,
+					backgroundColor: "transparent",
+					boxShadow: "none",
+				},
+				message: {
+					width: "100%",
+					padding: 0,
+				},
+			},
+		},
+	},
 });
 
 export default theme;

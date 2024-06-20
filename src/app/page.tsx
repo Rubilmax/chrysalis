@@ -7,7 +7,7 @@ import "evm-maths";
 import DataLink from "@/components/DataLink";
 import NavBar from "@/components/NavBar";
 import PositionCard from "@/components/PositionCard";
-import { createToast } from "@/toast";
+import { createToast, updateToast } from "@/toast";
 import Container from "@mui/material/Container";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
@@ -32,18 +32,6 @@ const App = () => {
 			),
 		[data],
 	);
-
-	useEffect(() => {
-		const id = createToast(
-			<>
-				Transaction submitted with hash:{" "}
-				<DataLink data="0xkzenfeihvifsenfveufbncseuifb" type="tx" />
-			</>,
-			{
-				isLoading: true,
-			},
-		);
-	}, []);
 
 	return (
 		<>

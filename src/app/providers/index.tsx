@@ -44,8 +44,16 @@ export const Providers = ({
 										autoClose={4000}
 										closeButton={false}
 										icon={false}
-										transition={({ isIn, children }) => (
-											<Snackbar message={children} open={isIn} />
+										transition={({ isIn, nodeRef, children }) => (
+											<Snackbar
+												ref={nodeRef}
+												anchorOrigin={{
+													vertical: "bottom",
+													horizontal: "right",
+												}}
+												open={isIn}
+												message={children}
+											/>
 										)}
 										pauseOnHover
 									/>
