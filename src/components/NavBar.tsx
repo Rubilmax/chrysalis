@@ -5,6 +5,8 @@ import { ConnectKitButton } from "connectkit";
 import React from "react";
 import "evm-maths";
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
+import { useAddressOrEnsInput } from "@/input";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import Alert from "@mui/material/Alert";
 import AppBar from "@mui/material/AppBar";
@@ -15,18 +17,42 @@ import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
-import { useAccount } from "wagmi";
+import { useAccount, useBytecode, useReadContract } from "wagmi";
 
 const NavBar = () => {
 	const account = useAccount();
-	const { executor, setExecutor, deployExecutor, status, isValid } =
-		React.useContext(ExecutorContext);
 
-	const invalidExecutor = executor != null && !isValid;
+	const {
+		selectedExecutor,
+		setSelectedExecutor,
+		deployExecutor,
+		addExecutor,
+		status,
+	} = React.useContext(ExecutorContext);
+
+	const {
+		address,
+		parsedAddress,
+		ens,
+		input,
+		debouncedInput,
+		setInput,
+		isLoadingAddress,
+		isLoadingEns,
+	} = useAddressOrEnsInput(selectedExecutor?.address);
+
+	const [isTouched, setIsTouched] = React.useState(false);
+
+	const isValid = !isLoadingAddress && !isLoadingEns && !!address;
+
+	const { data: bytecode, isLoading: isBytecodeLoading } = useBytecode({
+		address,
+	});
 
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 
@@ -60,7 +86,11 @@ const NavBar = () => {
 				>
 					<SettingsIcon />
 				</IconButton>
-				<Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}>
+				<Dialog
+					maxWidth="md"
+					open={settingsOpen}
+					onClose={() => setSettingsOpen(false)}
+				>
 					<Stack
 						direction="row"
 						justifyContent="space-between"
@@ -95,16 +125,51 @@ const NavBar = () => {
 							alignItems="flex-start"
 						>
 							<TextField
-								value={executor ?? ""}
-								placeholder="0x..."
-								onChange={(event) => setExecutor(event.target.value)}
-								error={invalidExecutor}
-								helperText={invalidExecutor ? "Invalid address" : ""}
+								value={input}
+								placeholder="0x{...} or {...}.eth"
+								onChange={(event) => {
+									setInput(event.target.value);
+									setIsTouched(true);
+								}}
+								error={!isValid && isTouched}
+								helperText={
+									(!isValid && isTouched && "Invalid address or ENS") ||
+									parsedAddress
+										? ens
+										: address
+								}
 								size="small"
 								variant="outlined"
-								label="Executor"
-								style={{ width: "26rem" }}
-								disabled={executor == null || status === "pending"}
+								label="Executor contract"
+								style={{ width: "30rem" }}
+								disabled={status === "pending"}
+								InputProps={{
+									endAdornment: (
+										<InputAdornment position="end">
+											{isBytecodeLoading ? (
+												<CircularProgress color="inherit" size={16} />
+											) : (
+												bytecode && (
+													<Button
+														color="inherit"
+														size="small"
+														startIcon={<PersonAddIcon />}
+														onClick={() => {
+															if (!address) return;
+
+															addExecutor({
+																address,
+																owner: `0x${bytecode.substring(bytecode.length - 40)}`,
+															});
+														}}
+													>
+														Add
+													</Button>
+												)
+											)}
+										</InputAdornment>
+									),
+								}}
 							/>
 							<Button
 								variant="contained"
@@ -116,7 +181,7 @@ const NavBar = () => {
 									)
 								}
 								disabled={!account.address || status === "pending"}
-								onClick={() => deployExecutor(account.address!)}
+								onClick={() => deployExecutor()}
 							>
 								Deploy
 							</Button>
