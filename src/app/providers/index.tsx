@@ -7,16 +7,16 @@ import { config } from "@/wagmi";
 import { ApolloClient, ApolloProvider, HttpLink } from "@apollo/client";
 import { createPersistedQueryLink } from "@apollo/client/link/persisted-queries";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
+import Snackbar from "@mui/material/Snackbar";
 import { ThemeProvider } from "@mui/material/styles";
 import { SafeProvider } from "@safe-global/safe-apps-react-sdk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
 import { type ReactNode } from "react";
-import { ToastContainer } from "react-toastify";
+import { Slide, ToastContainer } from "react-toastify";
 import { type State, WagmiProvider } from "wagmi";
 import { ExecutorContextProvider } from "./ExecutorContext";
 import { NotificationContextProvider } from "./NotificationContext";
-import "react-toastify/dist/ReactToastify.min.css";
 
 const queryClient = new QueryClient();
 
@@ -41,8 +41,12 @@ export const Providers = ({
 							<AppRouterCacheProvider>
 								<ThemeProvider theme={theme}>
 									<ToastContainer
-										position="bottom-right"
 										autoClose={4000}
+										closeButton={false}
+										icon={false}
+										transition={({ isIn, children }) => (
+											<Snackbar message={children} open={isIn} />
+										)}
 										pauseOnHover
 									/>
 

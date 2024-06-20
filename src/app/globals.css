@@ -11,6 +11,13 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --toastify-toast-width: 470px;
+  --toastify-toast-min-height: 0;
+  --toastify-color-success: #0a7952;
+  --toastify-color-error: #8b0000;
+  --toastify-color-warning: #b8860b;
+  --toastify-color-info: #121212;
 }
 
 body {
@@ -22,4 +29,13 @@ body {
     background-color: #f8f8f8;
     color: #181818;
   }
+}
+
+.Toastify__toast {
+  padding: 0;
+}
+
+.Toastify__toast-body {
+  padding: 0;
+  margin: 0;
 }

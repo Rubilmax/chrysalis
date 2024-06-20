@@ -1,7 +1,9 @@
+import DataLink from "@/components/DataLink";
+import { createToast, updateToast } from "@/toast";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Typography from "@mui/material/Typography";
-import { type ReactNode, createContext, useEffect, useRef } from "react";
-import { Id, toast } from "react-toastify";
+import React, { type ReactNode, createContext, useEffect, useRef } from "react";
+import { Id } from "react-toastify";
 import {
 	Config,
 	ResolvedRegister,
@@ -38,11 +40,11 @@ export const useSendTransaction = <
 	// 			break;
 	// 		case "pending":
 	// 			if (res.data)
-	// 				toast.update(res.data, { isLoading: true, type: "default" });
+	// 				updateToast(res.data, { isLoading: true, type: "default" });
 	// 			break;
 	// 		case "success":
 	// 			if (res.data)
-	// 				toast.update(res.data, { isLoading: true, type: "default" });
+	// 				updateToast(res.data, { isLoading: true, type: "default" });
 	// 			break;
 	// 		default:
 	// 			break;
@@ -69,7 +71,7 @@ export const useDeployContract = <
 	useEffect(() => {
 		if (!request.isPending) return;
 
-		toastId.current = toast(`Waiting for signature...`, {
+		toastId.current = createToast(`Waiting for signature...`, {
 			type: "default",
 			isLoading: true,
 		});
@@ -78,7 +80,7 @@ export const useDeployContract = <
 	useEffect(() => {
 		if (toastId.current == null || !request.isIdle) return;
 
-		toast.update(toastId.current, {
+		updateToast(toastId.current, {
 			type: "default",
 			isLoading: false,
 			render: `Transaction cancelled`,
@@ -91,7 +93,7 @@ export const useDeployContract = <
 
 		console.error(request.error);
 
-		toast.update(toastId.current, {
+		updateToast(toastId.current, {
 			type: "error",
 			isLoading: false,
 			render: `An error occurred while requesting signature: ${request.error.message.split("\n")[0]}`,
@@ -104,25 +106,13 @@ export const useDeployContract = <
 
 		const explorerUrl = account.chain?.blockExplorers?.default.url;
 
-		toast.update(toastId.current, {
+		updateToast(toastId.current, {
 			type: "success",
 			isLoading: true,
 			render: (
 				<>
 					Transaction submitted with hash:{" "}
-					{explorerUrl ? (
-						<Typography
-							component="a"
-							href={new URL(`/tx/${request.data}`, explorerUrl).toString()}
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							{request.data}{" "}
-							<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 1 }} />
-						</Typography>
-					) : (
-						request.data
-					)}
+					<DataLink data={request.data} type="tx" />
 				</>
 			),
 		});
@@ -135,7 +125,7 @@ export const useDeployContract = <
 
 		console.error(receipt.error);
 
-		toast.update(toastId.current, {
+		updateToast(toastId.current, {
 			type: "error",
 			isLoading: false,
 			render: `An error occurred while deploying the contract: ${receipt.error.message.split("\n")[0]}`,
@@ -148,7 +138,7 @@ export const useDeployContract = <
 
 		const explorerUrl = account.chain?.blockExplorers?.default.url;
 
-		toast.update(toastId.current, {
+		updateToast(toastId.current, {
 			type: "success",
 			isLoading: false,
 			render: (
