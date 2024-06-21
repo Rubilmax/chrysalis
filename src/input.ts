@@ -12,55 +12,34 @@ export const useAddressOrEnsInput = (
 ) => {
 	const [input, setInput] = React.useState(initialAddress ?? "");
 
-	const debouncedInput = useDebounce(input, 100);
-
 	const parsedEns = React.useMemo(
-		() =>
-			ensRegex.test(debouncedInput) ? normalize(debouncedInput) : undefined,
-		[debouncedInput],
+		() => (ensRegex.test(input) ? normalize(input) : undefined),
+		[input],
 	);
 	const parsedAddress = React.useMemo(() => {
 		try {
-			return getAddress(debouncedInput);
+			return getAddress(input);
 		} catch {}
-	}, [debouncedInput]);
+	}, [input]);
 
-	const [ens, setEns] = React.useState(initialEns);
-
-	React.useEffect(() => {
-		setEns(parsedEns);
-	}, [parsedEns]);
-
-	const [address, setAddress] = React.useState(initialAddress);
-
-	React.useEffect(() => {
-		setAddress(parsedAddress);
-	}, [parsedAddress]);
+	const debouncedEns = useDebounce(parsedEns, 100);
+	const debouncedAddress = useDebounce(parsedAddress, 50);
 
 	const { data: addressFromEns, isLoading: isLoadingAddress } = useEnsAddress({
-		name: parsedEns,
+		name: debouncedEns,
 	});
-
-	React.useEffect(() => {
-		setAddress(addressFromEns || undefined);
-	}, [addressFromEns]);
 
 	const { data: ensFromAddress, isLoading: isLoadingEns } = useEnsName({
-		address: parsedAddress,
+		address: debouncedAddress,
 	});
-
-	React.useEffect(() => {
-		setEns(ensFromAddress || undefined);
-	}, [ensFromAddress]);
 
 	return {
 		input,
-		debouncedInput,
 		setInput,
-		address,
+		address: parsedAddress ?? addressFromEns ?? undefined,
 		parsedAddress,
 		isLoadingAddress,
-		ens,
+		ens: parsedEns ?? ensFromAddress ?? undefined,
 		parsedEns,
 		isLoadingEns,
 	};

@@ -1,11 +1,17 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
+import Typography, { type TypographyOwnProps } from "@mui/material/Typography";
 import React from "react";
-import { useAccount } from "wagmi";
+import { getAddress } from "viem";
+import { useAccount, useEnsName } from "wagmi";
 
-const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
+export interface DataLinkProps extends TypographyOwnProps {
+	data: string;
+	type?: "address" | "tx";
+}
+
+const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 	const account = useAccount();
 
 	const copyToClipboard = React.useCallback(
@@ -17,29 +23,50 @@ const DataLink = ({ data, type }: { data: string; type: "address" | "tx" }) => {
 		[data],
 	);
 
+	const dataLabel = React.useMemo(
+		() => `${data.slice(0, 6)}...${data.slice(-4)}`,
+		[data],
+	);
 	const explorerUrl = account.chain?.blockExplorers?.default.url;
+
+	const { data: ens } = useEnsName({
+		address: type === "address" ? getAddress(data) : undefined,
+	});
+
+	if (!type || !explorerUrl)
+		return (
+			<>
+				<Typography {...props} noWrap>
+					{ens ?? dataLabel}
+				</Typography>
+				<IconButton sx={{ fontSize: 14, marginLeft: 0.5 }}>
+					<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
+				</IconButton>
+			</>
+		);
 
 	return (
 		<>
 			<Typography
-				variant="body2"
 				color="inherit"
-				fontWeight={500}
+				fontSize="inherit"
+				{...props}
 				component="a"
 				href={
 					explorerUrl && new URL(`/${type}/${data}`, explorerUrl).toString()
 				}
 				target="_blank"
 				rel="noopener noreferrer"
-				sx={{ textDecoration: "none" }}
+				sx={{ textDecoration: "none", verticalAlign: "middle" }}
 				noWrap
 			>
-				{data.substring(0, 6)}...{data.substring(data.length - 4)}
-				{explorerUrl && (
-					<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 0.5 }} />
-				)}
+				{ens ?? dataLabel}
+				<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 0.5 }} />
 			</Typography>
-			<IconButton sx={{ fontSize: 14, marginLeft: 0.5 }}>
+			<IconButton
+				color="inherit"
+				sx={{ fontSize: 12, padding: 0.4, marginLeft: 0.6, borderRadius: 1 }}
+			>
 				<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
 			</IconButton>
 		</>

@@ -4,30 +4,50 @@ import Toolbar from "@mui/material/Toolbar";
 import { ConnectKitButton } from "connectkit";
 import React from "react";
 import "evm-maths";
-import { ExecutorContext } from "@/app/providers/ExecutorContext";
+import {
+	ExecutorContext,
+	ExecutorDetails,
+} from "@/app/providers/ExecutorContext";
 import { useAddressOrEnsInput } from "@/input";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import AppBar from "@mui/material/AppBar";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
-import { useAccount, useBytecode, useReadContract } from "wagmi";
+import { getAddress } from "viem";
+import { useAccount, useBytecode } from "wagmi";
+import DataLink from "./DataLink";
+
+enum ExecutorOptionGroup {
+	ACCOUNT = "My Executors",
+	SAVED = "Saved Executors",
+}
+
+interface ExecutorOption extends ExecutorDetails {
+	isAdd?: boolean;
+	group?: ExecutorOptionGroup;
+}
+
+const filter = createFilterOptions<ExecutorOption>();
 
 const NavBar = () => {
 	const account = useAccount();
 
 	const {
+		executors,
 		selectedExecutor,
 		setSelectedExecutor,
 		deployExecutor,
@@ -40,19 +60,43 @@ const NavBar = () => {
 		parsedAddress,
 		ens,
 		input,
-		debouncedInput,
 		setInput,
 		isLoadingAddress,
 		isLoadingEns,
 	} = useAddressOrEnsInput(selectedExecutor?.address);
 
-	const [isTouched, setIsTouched] = React.useState(false);
-
-	const isValid = !isLoadingAddress && !isLoadingEns && !!address;
-
 	const { data: bytecode, isLoading: isBytecodeLoading } = useBytecode({
 		address,
 	});
+
+	const inputExecutor = React.useMemo(() => {
+		if (!address || !bytecode) return;
+
+		// TODO: check bytecode
+
+		return {
+			address,
+			owner: getAddress(`0x${bytecode.substring(bytecode.length - 40)}`),
+		};
+	}, [address, bytecode]);
+
+	const loading = isLoadingAddress || isLoadingEns || isBytecodeLoading;
+	const error = !loading && !inputExecutor && input !== "";
+	const warning =
+		!!selectedExecutor && selectedExecutor.owner !== account.address;
+
+	const options: ExecutorOption[] = React.useMemo(
+		() =>
+			Object.values(executors).map((executor) => ({
+				...executor,
+				isAdd: false,
+				group:
+					executor.address === account.address
+						? ExecutorOptionGroup.ACCOUNT
+						: ExecutorOptionGroup.SAVED,
+			})),
+		[executors],
+	);
 
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 
@@ -124,52 +168,120 @@ const NavBar = () => {
 							justifyContent="space-between"
 							alignItems="flex-start"
 						>
-							<TextField
-								value={input}
-								placeholder="0x{...} or {...}.eth"
-								onChange={(event) => {
-									setInput(event.target.value);
-									setIsTouched(true);
-								}}
-								error={!isValid && isTouched}
-								helperText={
-									(!isValid && isTouched && "Invalid address or ENS") ||
-									parsedAddress
-										? ens
-										: address
-								}
-								size="small"
-								variant="outlined"
-								label="Executor contract"
-								style={{ width: "30rem" }}
-								disabled={status === "pending"}
-								InputProps={{
-									endAdornment: (
-										<InputAdornment position="end">
-											{isBytecodeLoading ? (
-												<CircularProgress color="inherit" size={16} />
-											) : (
-												bytecode && (
-													<Button
-														color="inherit"
-														size="small"
-														startIcon={<PersonAddIcon />}
-														onClick={() => {
-															if (!address) return;
+							<Autocomplete<ExecutorOption, false, false, true>
+								inputValue={input}
+								onInputChange={(event, value) => setInput(value)}
+								onChange={(event, value) => {
+									if (typeof value === "string") return;
 
-															addExecutor({
-																address,
-																owner: `0x${bytecode.substring(bytecode.length - 40)}`,
-															});
-														}}
-													>
-														Add
-													</Button>
-												)
-											)}
-										</InputAdornment>
-									),
+									if (!value) return setSelectedExecutor(undefined);
+
+									const { address, owner } = value;
+
+									addExecutor({ address, owner });
+									setSelectedExecutor(address);
 								}}
+								options={options}
+								filterOptions={(options, params) => {
+									const filteredExecutors = filter(options, params);
+
+									if (
+										params.inputValue !== "" &&
+										filteredExecutors.length === 0 &&
+										inputExecutor
+									)
+										return [
+											{
+												...inputExecutor,
+												isAdd: true,
+											},
+										];
+
+									return filteredExecutors;
+								}}
+								noOptionsText="No saved Executor found"
+								loading={loading}
+								disabled={status === "pending"}
+								autoSelect
+								autoHighlight
+								handleHomeEndKeys
+								sx={{ width: 520 }}
+								getOptionLabel={(option) => {
+									if (typeof option === "string") return option;
+
+									return option.address;
+								}}
+								isOptionEqualToValue={(option, value) =>
+									option.address === value.address
+								}
+								groupBy={({ group }) => group ?? ExecutorOptionGroup.ACCOUNT}
+								renderOption={(props, { address, owner, isAdd }) => {
+									console.log(address, owner, isAdd);
+									return (
+										<Stack
+											component="li"
+											{...props}
+											key={address + isAdd}
+											direction="row"
+											justifyContent="space-between"
+										>
+											<Stack flex={1}>
+												<Typography variant="subtitle2">{address}</Typography>
+												<Stack direction="row" alignItems="center">
+													<Chip size="small" label="Owner" />
+													<Typography variant="caption" ml={1}>
+														{owner}
+													</Typography>
+												</Stack>
+											</Stack>
+											{isAdd && <PersonAddIcon />}
+										</Stack>
+									);
+								}}
+								renderInput={(params) => (
+									<TextField
+										{...params}
+										placeholder="0x{...} or {...}.eth"
+										error={error}
+										helperText={
+											<Stack direction="row" justifyContent="space-between">
+												<Typography variant="caption">
+													{error
+														? !address
+															? "Invalid address or ENS"
+															: "Not an Executor contract"
+														: parsedAddress
+															? ens
+															: address}
+												</Typography>
+												{selectedExecutor && (
+													<Typography
+														variant="caption"
+														sx={({ palette }) => ({
+															color: warning ? palette.warning.main : "inherit",
+														})}
+													>
+														{warning && (
+															<WarningIcon
+																fontSize="inherit"
+																sx={{ mr: 0.6 }}
+															/>
+														)}
+														Owner:{" "}
+														<DataLink
+															data={selectedExecutor.owner}
+															type="address"
+														/>
+													</Typography>
+												)}
+											</Stack>
+										}
+										FormHelperTextProps={{ component: "div" }}
+										size="small"
+										variant="outlined"
+										label="Executor contract"
+									/>
+								)}
 							/>
 							<Button
 								variant="contained"

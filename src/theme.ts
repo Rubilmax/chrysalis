@@ -34,6 +34,16 @@ const theme = createTheme({
 		},
 	},
 	components: {
+		MuiSvgIcon: {
+			styleOverrides: {
+				root: {
+					verticalAlign: "middle",
+				},
+			},
+		},
+		MuiChip: {
+			styleOverrides: {},
+		},
 		MuiSnackbar: {
 			styleOverrides: {
 				root: {

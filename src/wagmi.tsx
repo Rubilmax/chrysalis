@@ -122,7 +122,12 @@ export const useTransactionToast = <
 			render: (
 				<>
 					Transaction submitted with hash:{" "}
-					<DataLink data={request.data} type="tx" />
+					<DataLink
+						data={request.data}
+						type="tx"
+						variant="body2"
+						fontWeight={500}
+					/>
 				</>
 			),
 		});
@@ -146,22 +151,26 @@ export const useTransactionToast = <
 	React.useEffect(() => {
 		if (toastId.current == null || !receipt.isSuccess) return;
 
-		const explorerUrl = account.chain?.blockExplorers?.default.url;
-
 		updateToast(toastId.current, {
 			type: "success",
 			isLoading: false,
 			render: (
 				<>
 					Transaction included at block #{receipt.data.blockNumber} with hash:{" "}
-					{<DataLink data={receipt.data.transactionHash} type="tx" />}
+					{
+						<DataLink
+							data={receipt.data.transactionHash}
+							type="tx"
+							variant="body2"
+							fontWeight={500}
+						/>
+					}
 				</>
 			),
 			autoClose: 5000,
 		});
 	}, [
 		toastId,
-		account.chain?.blockExplorers?.default.url,
 		receipt.isSuccess,
 		receipt.data?.blockNumber,
 		receipt.data?.transactionHash,
