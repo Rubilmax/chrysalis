@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import "evm-maths";
 import "react-toastify/dist/ReactToastify.min.css";

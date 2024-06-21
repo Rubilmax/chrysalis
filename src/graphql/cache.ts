@@ -1,5 +1,9 @@
-import { InMemoryCache, TypePolicies, TypePolicy } from "@apollo/client";
 import {
+	InMemoryCache,
+	type TypePolicies,
+	type TypePolicy,
+} from "@apollo/client";
+import type {
 	Asset,
 	BigIntDataPoint,
 	ChainSynchronizationState,
@@ -177,10 +181,13 @@ const typePolicies: TypePolicies = {
 				// Vault id must be queried for this to work.
 				// https://www.apollographql.com/docs/react/caching/cache-field-behavior/#merging-arrays-of-non-normalized-objects
 				merge: (
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					existing: any[],
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					incoming: any[],
 					{ readField, mergeObjects },
 				) => {
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					const merged: any[] = existing ? existing.slice(0) : [];
 					const vaultIdToIndex = new Map<string, number>();
 					if (existing) {
@@ -195,16 +202,21 @@ const typePolicies: TypePolicies = {
 							vaultIdToIndex.set(marketId, index);
 						});
 					}
-					incoming.forEach((allocation) => {
+					for (const allocation of incoming) {
 						const market = readField<Market>("market", allocation);
 						const marketId = readField<string>("id", market);
-						if (marketId && vaultIdToIndex.has(marketId)) {
-							const index = vaultIdToIndex.get(marketId)!;
-							merged[index] = mergeObjects(merged[index], allocation);
-						} else {
-							merged.push(allocation);
+
+						if (marketId != null) {
+							const index = vaultIdToIndex.get(marketId);
+							if (index != null) {
+								merged[index] = mergeObjects(merged[index], allocation);
+
+								continue;
+							}
 						}
-					});
+
+						merged.push(allocation);
+					}
 					return merged;
 				},
 			},
@@ -237,10 +249,13 @@ const typePolicies: TypePolicies = {
 				// Asset id must be queried for this to work.
 				// https://www.apollographql.com/docs/react/caching/cache-field-behavior/#merging-arrays-of-non-normalized-objects
 				merge: (
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					existing: any[],
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					incoming: any[],
 					{ readField, mergeObjects },
 				) => {
+					// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 					const merged: any[] = existing ? existing.slice(0) : [];
 					const assetIdToIndex = new Map<string, number>();
 					if (existing) {
@@ -255,16 +270,22 @@ const typePolicies: TypePolicies = {
 							assetIdToIndex.set(assetId, index);
 						});
 					}
-					incoming.forEach((marketStateReward) => {
+					for (const marketStateReward of incoming) {
 						const asset = readField<Asset>("asset", marketStateReward);
 						const assetId = readField<string>("id", asset);
-						if (assetId && assetIdToIndex.has(assetId)) {
-							const index = assetIdToIndex.get(assetId)!;
-							merged[index] = mergeObjects(merged[index], marketStateReward);
-						} else {
-							merged.push(marketStateReward);
+
+						if (assetId != null) {
+							const index = assetIdToIndex.get(assetId);
+							if (index != null) {
+								merged[index] = mergeObjects(merged[index], marketStateReward);
+
+								continue;
+							}
 						}
-					});
+
+						merged.push(marketStateReward);
+					}
+
 					return merged;
 				},
 			},

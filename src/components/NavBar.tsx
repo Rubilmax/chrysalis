@@ -6,7 +6,7 @@ import React from "react";
 import "evm-maths";
 import {
 	ExecutorContext,
-	ExecutorDetails,
+	type ExecutorDetails,
 } from "@/app/providers/ExecutorContext";
 import { getExecutorOwner } from "@/executor";
 import { useAddressOrEnsInput } from "@/input";
@@ -31,7 +31,6 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
-import { getAddress } from "viem";
 import { useAccount, useBytecode } from "wagmi";
 import DataLink from "./DataLink";
 
@@ -51,8 +50,8 @@ const NavBar = () => {
 	const account = useAccount();
 
 	const {
+		executor,
 		executors,
-		selectedExecutor,
 		setSelectedExecutor,
 		deployExecutor,
 		addExecutor,
@@ -69,7 +68,7 @@ const NavBar = () => {
 		setInput,
 		isLoadingAddress,
 		isLoadingEns,
-	} = useAddressOrEnsInput(selectedExecutor?.address);
+	} = useAddressOrEnsInput(executor?.address);
 
 	const { data: bytecode, isLoading: isBytecodeLoading } = useBytecode({
 		address,
@@ -89,8 +88,7 @@ const NavBar = () => {
 
 	const loading = isLoadingAddress || isLoadingEns || isBytecodeLoading;
 	const error = !loading && !inputExecutor && input !== "";
-	const warning =
-		!!selectedExecutor && selectedExecutor.owner !== account.address;
+	const warning = !!executor && executor.owner !== account.address;
 
 	const options: ExecutorOption[] = React.useMemo(
 		() =>
@@ -102,7 +100,7 @@ const NavBar = () => {
 						? ExecutorOptionGroup.ACCOUNT
 						: ExecutorOptionGroup.SAVED,
 			})),
-		[executors],
+		[executors, account.address],
 	);
 
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
@@ -170,7 +168,7 @@ const NavBar = () => {
 							<Autocomplete<ExecutorOption, false, false, true>
 								inputValue={input}
 								onInputChange={(event, value) => setInput(value)}
-								value={selectedExecutor ?? null}
+								value={executor ?? null}
 								onChange={(event, value) => {
 									if (typeof value === "string") return;
 
@@ -246,8 +244,7 @@ const NavBar = () => {
 													onClick={(event) => {
 														event.stopPropagation();
 
-														if (selectedExecutor?.address === address)
-															setInput("");
+														if (executor?.address === address) setInput("");
 														removeExecutor(address);
 													}}
 												>
@@ -269,7 +266,7 @@ const NavBar = () => {
 														{parsedAddress ? ens : address}
 													</Typography>
 												)}
-												{selectedExecutor && (
+												{executor && (
 													<Tooltip
 														title={
 															warning
@@ -293,10 +290,7 @@ const NavBar = () => {
 																/>
 															)}
 															Owner:{" "}
-															<DataLink
-																data={selectedExecutor.owner}
-																type="address"
-															/>
+															<DataLink data={executor.owner} type="address" />
 														</Typography>
 													</Tooltip>
 												)}
@@ -324,7 +318,7 @@ const NavBar = () => {
 									)
 								}
 								disabled={!account.address || status === "pending"}
-								onClick={() => deployExecutor()}
+								onClick={deployExecutor}
 								sx={{ mt: 2 }}
 							>
 								Deploy new

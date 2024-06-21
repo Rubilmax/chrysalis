@@ -1,6 +1,6 @@
-import { Address } from "viem";
-import { Hex } from "viem";
-import { Hash } from "viem";
+import type { Address } from "viem";
+import type { Hex } from "viem";
+import type { Hash } from "viem";
 export type Maybe<T> = T | null;
 export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = {

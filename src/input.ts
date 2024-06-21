@@ -1,15 +1,12 @@
 import { useDebounce } from "@uidotdev/usehooks";
 import React from "react";
-import { Address, getAddress } from "viem";
+import { type Address, getAddress } from "viem";
 import { normalize } from "viem/ens";
 import { useEnsAddress, useEnsName } from "wagmi";
 
 export const ensRegex = /.+\.eth$/;
 
-export const useAddressOrEnsInput = (
-	initialAddress?: Address,
-	initialEns?: string,
-) => {
+export const useAddressOrEnsInput = (initialAddress?: Address) => {
 	const [input, setInput] = React.useState(initialAddress ?? "");
 
 	const parsedEns = React.useMemo(

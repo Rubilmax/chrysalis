@@ -15,9 +15,9 @@ import "evm-maths";
 import { useSendTransaction } from "@/wagmi";
 import { ExecutorEncoder } from "executooor";
 import React from "react";
-import { Hex, maxUint256, parseUnits, zeroAddress } from "viem";
+import { type Hex, maxUint256, parseUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
-import { Position } from "./PositionCard";
+import type { Position } from "./PositionCard";
 
 const PositionContent = ({
 	position: { collateral, collateralUsd, borrowAssets, borrowShares, market },
@@ -33,7 +33,7 @@ const PositionContent = ({
 		request: { sendTransaction },
 	} = useSendTransaction();
 	const provider = useEthersProvider();
-	const { executor, isValid } = React.useContext(ExecutorContext);
+	const { executor } = React.useContext(ExecutorContext);
 
 	const account = useAccount();
 	const { connected } = useSafeAppsSDK();
@@ -59,7 +59,7 @@ const PositionContent = ({
 	}, [borrowAssets, collateralValue]);
 
 	const leverage = React.useMemo(() => {
-		if (collateralValue === borrowAssets) return Infinity;
+		if (collateralValue === borrowAssets) return Number.POSITIVE_INFINITY;
 
 		return collateralValue.wadDiv(collateralValue - borrowAssets).toWadFloat();
 	}, [borrowAssets, collateralValue]);
@@ -89,7 +89,7 @@ const PositionContent = ({
 		if (withdraw > balance) return { withdrawError: "Insufficient balance" };
 
 		return { withdraw };
-	}, [withdrawField]);
+	}, [withdrawField, balance, market.collateralAsset.decimals]);
 
 	const [leverageField, setLeverageField] = React.useState(
 		Math.min(leverage, maxLeverage),
@@ -132,9 +132,7 @@ const PositionContent = ({
 
 	const errorMessage = !connected
 		? "You must log in through the Safe App."
-		: !isValid
-			? "The executor address provided is invalid."
-			: "";
+		: "";
 
 	return (
 		<>
@@ -270,9 +268,10 @@ const PositionContent = ({
 					startIcon={withdraw === balance ? <CloseIcon /> : <EditIcon />}
 					disableElevation
 					onClick={async () => {
-						if (!isValid) return;
+						if (!account.address) return;
+						if (!executor) return;
 
-						const encoder = new ExecutorEncoder(executor, provider);
+						const encoder = new ExecutorEncoder(executor.address, provider);
 
 						if (connected) {
 						} else {
@@ -290,24 +289,28 @@ const PositionContent = ({
 									marketParams,
 									0n,
 									borrowShares,
-									account.address!,
+									account.address,
 									[],
 								)
 								.morphoBlueWithdrawCollateral(
 									market.morphoBlue.address,
 									marketParams,
 									collateral,
-									account.address!,
-									account.address!,
+									account.address,
+									account.address,
 								)
 								.populateExec();
 
 							console.log({ to: executor, value, data: data as Hex });
 
-							sendTransaction({ to: executor, value, data: data as Hex });
+							sendTransaction({
+								to: executor.address,
+								value,
+								data: data as Hex,
+							});
 						}
 					}}
-					disabled={!isValid || !connected || !!withdrawError}
+					disabled={!executor || !connected || !!withdrawError}
 				>
 					{withdraw === balance ? "Close" : "Adjust"}
 				</Button>

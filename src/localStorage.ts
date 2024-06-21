@@ -44,7 +44,7 @@ export function useLocalStorage<T>(key: string, defaultValue?: T) {
 		if (value == null) return;
 
 		setValue(JSON.parse(value));
-	}, []);
+	}, [key]);
 
 	const skip = React.useRef(true);
 	React.useEffect(() => {
@@ -57,7 +57,7 @@ export function useLocalStorage<T>(key: string, defaultValue?: T) {
 		if (value == null) return removeItem(key);
 
 		setItem(key, JSON.stringify(value));
-	}, [value]);
+	}, [key, value]);
 
 	return [value, setValue] as const;
 }
