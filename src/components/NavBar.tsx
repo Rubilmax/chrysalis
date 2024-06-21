@@ -8,7 +8,9 @@ import {
 	ExecutorContext,
 	ExecutorDetails,
 } from "@/app/providers/ExecutorContext";
+import { getExecutorOwner } from "@/executor";
 import { useAddressOrEnsInput } from "@/input";
+import DeleteIcon from "@mui/icons-material/Delete";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import WarningIcon from "@mui/icons-material/Warning";
@@ -22,6 +24,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -53,6 +56,7 @@ const NavBar = () => {
 		setSelectedExecutor,
 		deployExecutor,
 		addExecutor,
+		removeExecutor,
 		status,
 	} = React.useContext(ExecutorContext);
 
@@ -60,6 +64,7 @@ const NavBar = () => {
 		address,
 		parsedAddress,
 		ens,
+		parsedEns,
 		input,
 		setInput,
 		isLoadingAddress,
@@ -73,11 +78,12 @@ const NavBar = () => {
 	const inputExecutor = React.useMemo(() => {
 		if (!address || !bytecode) return;
 
-		// TODO: check bytecode
+		const owner = getExecutorOwner(bytecode);
+		if (owner == null) return;
 
 		return {
 			address,
-			owner: getAddress(`0x${bytecode.substring(bytecode.length - 40)}`),
+			owner,
 		};
 	}, [address, bytecode]);
 
@@ -131,11 +137,7 @@ const NavBar = () => {
 				>
 					<SettingsIcon />
 				</IconButton>
-				<Dialog
-					maxWidth="md"
-					open={settingsOpen}
-					onClose={() => setSettingsOpen(false)}
-				>
+				<Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}>
 					<Stack
 						direction="row"
 						justifyContent="space-between"
@@ -164,11 +166,7 @@ const NavBar = () => {
 								<b>previously deployed Executor contract</b>.
 							</Typography>
 						</Alert>
-						<Stack
-							direction="row"
-							justifyContent="space-between"
-							alignItems="flex-start"
-						>
+						<Stack>
 							<Autocomplete<ExecutorOption, false, false, true>
 								inputValue={input}
 								onInputChange={(event, value) => setInput(value)}
@@ -201,13 +199,18 @@ const NavBar = () => {
 
 									return filteredExecutors;
 								}}
-								noOptionsText="No saved Executor found"
+								noOptionsText={
+									error
+										? !address
+											? "Invalid address or ENS"
+											: "Not an Executor contract"
+										: "No saved Executor found"
+								}
 								loading={loading}
 								disabled={status === "pending"}
 								autoSelect
 								autoHighlight
 								handleHomeEndKeys
-								sx={{ width: 520 }}
 								getOptionLabel={(option) => {
 									if (typeof option === "string") return option;
 
@@ -218,7 +221,7 @@ const NavBar = () => {
 								}
 								groupBy={({ group }) => group ?? ExecutorOptionGroup.ACCOUNT}
 								renderOption={(props, { address, owner, isAdd }) => {
-									console.log(address, owner, isAdd);
+									// console.log(address, owner, isAdd);
 									return (
 										<Stack
 											component="li"
@@ -236,7 +239,21 @@ const NavBar = () => {
 													</Typography>
 												</Stack>
 											</Stack>
-											{isAdd && <PersonAddIcon />}
+											{isAdd ? (
+												<PersonAddIcon sx={{ mr: 1 }} />
+											) : (
+												<IconButton
+													onClick={(event) => {
+														event.stopPropagation();
+
+														if (selectedExecutor?.address === address)
+															setInput("");
+														removeExecutor(address);
+													}}
+												>
+													<DeleteIcon />
+												</IconButton>
+											)}
 										</Stack>
 									);
 								}}
@@ -247,15 +264,11 @@ const NavBar = () => {
 										error={error}
 										helperText={
 											<Stack direction="row" justifyContent="space-between">
-												<Typography variant="caption">
-													{error
-														? !address
-															? "Invalid address or ENS"
-															: "Not an Executor contract"
-														: parsedAddress
-															? ens
-															: address}
-												</Typography>
+												{(parsedAddress || parsedEns) && (
+													<Typography variant="caption">
+														{parsedAddress ? ens : address}
+													</Typography>
+												)}
 												{selectedExecutor && (
 													<Tooltip
 														title={
@@ -296,6 +309,11 @@ const NavBar = () => {
 									/>
 								)}
 							/>
+							<Divider>
+								<Typography variant="subtitle1" fontWeight={700}>
+									OR
+								</Typography>
+							</Divider>
 							<Button
 								variant="contained"
 								endIcon={
@@ -307,8 +325,9 @@ const NavBar = () => {
 								}
 								disabled={!account.address || status === "pending"}
 								onClick={() => deployExecutor()}
+								sx={{ mt: 2 }}
 							>
-								Deploy
+								Deploy new
 							</Button>
 						</Stack>
 					</DialogContent>

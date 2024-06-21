@@ -20,6 +20,7 @@ export const ExecutorContext = React.createContext<{
 	>;
 	deployExecutor: () => Promise<void>;
 	addExecutor: (address: ExecutorDetails) => void;
+	removeExecutor: (address: Address) => void;
 	status: "idle" | "pending" | "error" | "success";
 }>({
 	executors: {},
@@ -27,6 +28,7 @@ export const ExecutorContext = React.createContext<{
 	setSelectedExecutor: () => {},
 	deployExecutor: async () => {},
 	addExecutor: () => {},
+	removeExecutor: () => {},
 	status: "idle",
 });
 
@@ -50,6 +52,16 @@ export const ExecutorContextProvider = ({
 			...executors,
 			[executor.address]: executor,
 		}));
+	}, []);
+
+	const removeExecutor = React.useCallback((executor: Address) => {
+		if (!isAddress(executor)) return;
+
+		setExecutors((executors) => {
+			delete executors[executor];
+
+			return { ...executors };
+		});
 	}, []);
 
 	const deployExecutor = React.useCallback(async () => {
@@ -102,6 +114,7 @@ export const ExecutorContextProvider = ({
 				setSelectedExecutor,
 				deployExecutor,
 				addExecutor,
+				removeExecutor,
 				status: request.status,
 			}}
 		>
