@@ -1,5 +1,10 @@
 import React from "react";
 
+// @ts-ignore
+BigInt.prototype.toJSON = function () {
+	return this.toString();
+};
+
 export const getItem = (key: string) => {
 	try {
 		return localStorage.getItem(key);
@@ -31,8 +36,8 @@ export function useLocalStorage<T>(
 export function useLocalStorage<T>(
 	key: string,
 ): [T | undefined, React.Dispatch<React.SetStateAction<T | undefined>>];
-export function useLocalStorage<T>(key: string, initialValue?: T) {
-	const [value, setValue] = React.useState(initialValue);
+export function useLocalStorage<T>(key: string, defaultValue?: T) {
+	const [value, setValue] = React.useState(defaultValue);
 
 	React.useEffect(() => {
 		const value = getItem(key);
@@ -41,7 +46,14 @@ export function useLocalStorage<T>(key: string, initialValue?: T) {
 		setValue(JSON.parse(value));
 	}, []);
 
+	const skip = React.useRef(true);
 	React.useEffect(() => {
+		// Skip first to not save default value.
+		if (skip.current) {
+			skip.current = false;
+			return;
+		}
+
 		if (value == null) return removeItem(key);
 
 		setItem(key, JSON.stringify(value));

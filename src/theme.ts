@@ -1,5 +1,6 @@
 "use client";
 
+import { tooltipClasses } from "@mui/material/Tooltip";
 import { createTheme } from "@mui/material/styles";
 import { Roboto } from "next/font/google";
 
@@ -41,8 +42,21 @@ const theme = createTheme({
 				},
 			},
 		},
-		MuiChip: {
-			styleOverrides: {},
+		MuiTooltip: {
+			styleOverrides: {
+				tooltipPlacementTop: {
+					marginBottom: "4px !important",
+				},
+				tooltipPlacementBottom: {
+					marginTop: "4px !important",
+				},
+				tooltipPlacementRight: {
+					marginLeft: "4px !important",
+				},
+				tooltipPlacementLeft: {
+					marginRight: "4px !important",
+				},
+			},
 		},
 		MuiSnackbar: {
 			styleOverrides: {

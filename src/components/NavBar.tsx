@@ -25,6 +25,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import { getAddress } from "viem";
@@ -171,6 +172,7 @@ const NavBar = () => {
 							<Autocomplete<ExecutorOption, false, false, true>
 								inputValue={input}
 								onInputChange={(event, value) => setInput(value)}
+								value={selectedExecutor ?? null}
 								onChange={(event, value) => {
 									if (typeof value === "string") return;
 
@@ -255,24 +257,35 @@ const NavBar = () => {
 															: address}
 												</Typography>
 												{selectedExecutor && (
-													<Typography
-														variant="caption"
-														sx={({ palette }) => ({
-															color: warning ? palette.warning.main : "inherit",
-														})}
+													<Tooltip
+														title={
+															warning
+																? "You are not the owner of this Executor."
+																: undefined
+														}
+														placement="top"
 													>
-														{warning && (
-															<WarningIcon
-																fontSize="inherit"
-																sx={{ mr: 0.6 }}
+														<Typography
+															variant="caption"
+															sx={({ palette }) => ({
+																color: warning
+																	? palette.warning.main
+																	: "inherit",
+															})}
+														>
+															{warning && (
+																<WarningIcon
+																	fontSize="inherit"
+																	sx={{ mr: 0.6 }}
+																/>
+															)}
+															Owner:{" "}
+															<DataLink
+																data={selectedExecutor.owner}
+																type="address"
 															/>
-														)}
-														Owner:{" "}
-														<DataLink
-															data={selectedExecutor.owner}
-															type="address"
-														/>
-													</Typography>
+														</Typography>
+													</Tooltip>
 												)}
 											</Stack>
 										}

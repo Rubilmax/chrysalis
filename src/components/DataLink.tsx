@@ -50,6 +50,7 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 			<Typography
 				color="inherit"
 				fontSize="inherit"
+				fontWeight={500}
 				{...props}
 				component="a"
 				href={
@@ -57,11 +58,11 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 				}
 				target="_blank"
 				rel="noopener noreferrer"
-				sx={{ textDecoration: "none", verticalAlign: "middle" }}
+				sx={{ verticalAlign: "middle" }}
 				noWrap
 			>
 				{ens ?? dataLabel}
-				<OpenInNewIcon fontSize="inherit" sx={{ marginLeft: 0.5 }} />
+				<OpenInNewIcon sx={{ fontSize: 12, marginLeft: 0.4 }} />
 			</Typography>
 			<IconButton
 				color="inherit"
