@@ -8,6 +8,8 @@
 		"rules": {
 			"recommended": true,
 			"style": {
+				"noNonNullAssertion": "off",
+				"noUnusedTemplateLiteral": "off",
 				"useNodejsImportProtocol": "off"
 			}
 		}

@@ -2,16 +2,15 @@ import DataLink from "@/components/DataLink";
 import { createToast, updateToast } from "@/toast";
 import { getDefaultConfig } from "connectkit";
 import React from "react";
-import { Id } from "react-toastify";
+import type { Id } from "react-toastify";
 import { createConfig } from "wagmi";
 import {
-	Config,
-	ResolvedRegister,
-	UseDeployContractParameters,
-	UseDeployContractReturnType,
-	UseSendTransactionParameters,
-	UseSendTransactionReturnType,
-	useAccount,
+	type Config,
+	type ResolvedRegister,
+	type UseDeployContractParameters,
+	type UseDeployContractReturnType,
+	type UseSendTransactionParameters,
+	type UseSendTransactionReturnType,
 	useDeployContract as useWagmiDeployContract,
 	useSendTransaction as useWagmiSendTransaction,
 	useWaitForTransactionReceipt as useWagmiWaitForTransactionReceipt,
@@ -74,7 +73,6 @@ export const useTransactionToast = <
 		| UseSendTransactionReturnType<config, context>,
 ) => {
 	const toastId = React.useRef<Id>();
-	const account = useAccount();
 
 	const receipt = useWagmiWaitForTransactionReceipt({ hash: request.data });
 
@@ -87,7 +85,7 @@ export const useTransactionToast = <
 			type: "default",
 			isLoading: true,
 		});
-	}, [toastId, request.isPending]);
+	}, [request.isPending]);
 
 	React.useEffect(() => {
 		if (toastId.current == null || !request.isIdle) return;
@@ -98,7 +96,7 @@ export const useTransactionToast = <
 			render: `Transaction cancelled`,
 			autoClose: 2500,
 		});
-	}, [toastId, request.isIdle]);
+	}, [request.isIdle]);
 
 	React.useEffect(() => {
 		if (toastId.current == null || !request.isError) return;
@@ -111,7 +109,7 @@ export const useTransactionToast = <
 			render: `An error occurred while requesting signature: ${request.error.message.split("\n")[0]}`,
 			autoClose: 5000,
 		});
-	}, [toastId, request.isError, request.error]);
+	}, [request.isError, request.error]);
 
 	React.useEffect(() => {
 		if (toastId.current == null || !request.isSuccess) return;
@@ -131,7 +129,7 @@ export const useTransactionToast = <
 				</>
 			),
 		});
-	}, [toastId, request.isSuccess]);
+	}, [request.isSuccess, request.data]);
 
 	// Receipt
 
@@ -146,7 +144,7 @@ export const useTransactionToast = <
 			render: `An error occurred while deploying the contract: ${receipt.error.message.split("\n")[0]}`,
 			autoClose: 5000,
 		});
-	}, [toastId, receipt.isError, receipt.error]);
+	}, [receipt.isError, receipt.error]);
 
 	React.useEffect(() => {
 		if (toastId.current == null || !receipt.isSuccess) return;
@@ -170,7 +168,6 @@ export const useTransactionToast = <
 			autoClose: 5000,
 		});
 	}, [
-		toastId,
 		receipt.isSuccess,
 		receipt.data?.blockNumber,
 		receipt.data?.transactionHash,

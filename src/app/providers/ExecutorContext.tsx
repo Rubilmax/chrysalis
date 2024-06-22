@@ -1,10 +1,11 @@
-import { executorDeployData } from "@/executor";
 import { useLocalStorage } from "@/localStorage";
-import { useDeployContract } from "@/wagmi";
-import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
 import React from "react";
-import { type Address, type Hash, isAddress } from "viem";
-import { useAccount } from "wagmi";
+import {
+	type Address,
+	type Hash,
+	type TransactionRequest,
+	isAddress,
+} from "viem";
 
 export interface ExecutorDetails {
 	address: Address;
@@ -18,26 +19,20 @@ export const ExecutorContext = React.createContext<{
 	setSelectedExecutor: React.Dispatch<
 		React.SetStateAction<Address | undefined>
 	>;
-	deployExecutor: () => Promise<void>;
 	addExecutor: (address: ExecutorDetails) => void;
 	removeExecutor: (address: Address) => void;
-	status: "idle" | "pending" | "error" | "success";
 }>({
 	executor: undefined,
 	executors: {},
 	setSelectedExecutor: () => {},
-	deployExecutor: async () => {},
 	addExecutor: () => {},
 	removeExecutor: () => {},
-	status: "idle",
 });
 
 export const ExecutorContextProvider = ({
 	children,
 }: { children: React.ReactNode }) => {
-	const account = useAccount();
-	const { connected, sdk } = useSafeAppsSDK();
-	const { request, receipt } = useDeployContract();
+	const [txBatch, setTxBatch] = React.useState<TransactionRequest[]>([]);
 
 	const [selectedExecutorAddress, setSelectedExecutor] =
 		useLocalStorage<Address>("selectedExecutor");
@@ -70,43 +65,6 @@ export const ExecutorContextProvider = ({
 		[setExecutors],
 	);
 
-	const deployExecutor = React.useCallback(async () => {
-		if (!account.address) return console.error("Unknown account address");
-
-		if (connected) {
-			// const tx = await sdk.txs.send({
-			// 	txs: [
-			// 		{
-			// 			data: encodeDeployData({
-			//				...executorDeployData,
-			// 				args: [owner],
-			// 			}),
-			// 		},
-			// 	],
-			// });
-		} else {
-			request.deployContract({
-				...executorDeployData,
-				args: [account.address],
-			});
-		}
-	}, [request.deployContract, account.address, connected]);
-
-	React.useEffect(() => {
-		if (!receipt.data?.contractAddress || !account.address) return;
-
-		addExecutor({
-			address: receipt.data.contractAddress,
-			owner: account.address,
-			deploymentTx: receipt.data.transactionHash,
-		});
-	}, [
-		receipt.data?.contractAddress,
-		receipt.data?.transactionHash,
-		account.address,
-		addExecutor,
-	]);
-
 	const executor = React.useMemo(
 		() =>
 			selectedExecutorAddress ? executors[selectedExecutorAddress] : undefined,
@@ -119,10 +77,8 @@ export const ExecutorContextProvider = ({
 				executor,
 				executors,
 				setSelectedExecutor,
-				deployExecutor,
 				addExecutor,
 				removeExecutor,
-				status: request.status,
 			}}
 		>
 			{children}

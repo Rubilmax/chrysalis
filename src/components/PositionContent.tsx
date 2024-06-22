@@ -1,5 +1,6 @@
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { useEthersProvider } from "@/ethers";
+import { useDeployContract } from "@/wagmi";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import Button from "@mui/material/Button";
@@ -32,6 +33,10 @@ const PositionContent = ({
 	const {
 		request: { sendTransaction },
 	} = useSendTransaction();
+	const {
+		request: { deployContract },
+		receipt,
+	} = useDeployContract();
 	const provider = useEthersProvider();
 	const { executor } = React.useContext(ExecutorContext);
 
