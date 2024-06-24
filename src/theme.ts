@@ -35,6 +35,13 @@ const theme = createTheme({
 		},
 	},
 	components: {
+		MuiChip: {
+			styleOverrides: {
+				root: {
+					borderRadius: 6,
+				},
+			},
+		},
 		MuiSvgIcon: {
 			styleOverrides: {
 				root: {

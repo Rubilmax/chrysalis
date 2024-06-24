@@ -10,7 +10,6 @@ import {
 export interface ExecutorDetails {
 	address: Address;
 	owner: Address;
-	deploymentTx?: Hash;
 }
 
 export const ExecutorContext = React.createContext<{

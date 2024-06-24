@@ -138,13 +138,12 @@ const ExecutorSelect = () => {
 			}}
 			isOptionEqualToValue={(option, value) => option.address === value.address}
 			groupBy={({ group }) => group ?? ExecutorOptionGroup.ACCOUNT}
-			renderOption={(props, { address, owner, isAdd }) => {
-				// console.log(address, owner, isAdd);
+			renderOption={(props, { address, owner, isAdd, group }) => {
 				return (
 					<Stack
 						component="li"
 						{...props}
-						key={address + isAdd}
+						key={address + owner + isAdd + group}
 						direction="row"
 						justifyContent="space-between"
 					>

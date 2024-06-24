@@ -1,11 +1,12 @@
-import Alert, { AlertColor } from "@mui/material/Alert";
+import Alert, { type AlertColor } from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
-import React, { ReactNode } from "react";
+import type React from "react";
+import type { ReactNode } from "react";
 
 import {
-	Id,
-	ToastOptions,
-	UpdateOptions,
+	type Id,
+	type ToastOptions,
+	type UpdateOptions,
 	toast as reactToastify,
 } from "react-toastify";
 

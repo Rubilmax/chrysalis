@@ -1,4 +1,4 @@
-import { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
+import type { GetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Avatar from "@mui/material/Avatar";
 import AvatarGroup from "@mui/material/AvatarGroup";
@@ -15,11 +15,6 @@ export type Position =
 	GetUserMarketPositionsQuery["userByAddress"]["marketPositions"][number];
 
 const PositionCard = ({ position }: { position: Position }) => {
-	const borrowApy = position.market.state?.borrowApy;
-	const dailyBorrowApy = position.market.dailyApys?.borrowApy;
-	const weeklyBorrowApy = position.market.weeklyApys?.borrowApy;
-	const monthlyBorrowApy = position.market.monthlyApys?.borrowApy;
-
 	return (
 		<Paper key={position.market.uniqueKey}>
 			<Stack
@@ -67,32 +62,6 @@ const PositionCard = ({ position }: { position: Position }) => {
 							}
 						/>
 					</Stack>
-				</Stack>
-				<Stack alignItems="center" ml={2}>
-					<Stack direction="row" justifyContent="space-between">
-						<Stack alignItems="end">
-							<Typography variant="caption">30d</Typography>
-							<Typography variant="caption">7d</Typography>
-							<Typography variant="caption">1d</Typography>
-						</Stack>
-						<Stack ml={2}>
-							<Typography variant="body2">
-								{monthlyBorrowApy ? (monthlyBorrowApy * 100).toFixed(2) : 0}%
-							</Typography>
-							<Typography variant="body2">
-								{weeklyBorrowApy ? (weeklyBorrowApy * 100).toFixed(2) : 0}%
-							</Typography>
-							<Typography variant="body2">
-								{dailyBorrowApy ? (dailyBorrowApy * 100).toFixed(2) : 0}%
-							</Typography>
-						</Stack>
-					</Stack>
-					<Typography variant="caption" mt={1}>
-						now
-					</Typography>
-					<Typography variant="h6" mt={-1}>
-						{borrowApy ? (borrowApy * 100).toFixed(2) : 0}%
-					</Typography>
 				</Stack>
 			</Stack>
 			<Divider />

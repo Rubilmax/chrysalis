@@ -51,14 +51,8 @@ const NavBar = () => {
 		addExecutor({
 			address: receipt.data.contractAddress,
 			owner: account.address,
-			deploymentTx: receipt.data.transactionHash,
 		});
-	}, [
-		receipt.data?.contractAddress,
-		receipt.data?.transactionHash,
-		account.address,
-		addExecutor,
-	]);
+	}, [receipt.data?.contractAddress, account.address, addExecutor]);
 
 	return (
 		<AppBar position="static" elevation={0} color="secondary">

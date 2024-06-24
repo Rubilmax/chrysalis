@@ -1640,6 +1640,11 @@
   resolved "https://registry.yarnpkg.com/@kamilkisiela/fast-url-parser/-/fast-url-parser-1.1.4.tgz#9d68877a489107411b953c54ea65d0658b515809"
   integrity sha512-gbkePEBupNydxCelHCESvFSFM8XPh1Zs/OAVRW/rKpEqPAl5PbOM90Si8mv9bvnR53uPD2s/FiRxdvSejpRJew==
 
+"@layflags/rolling-number@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@layflags/rolling-number/-/rolling-number-1.0.0.tgz#0bc372a522616c24dd65044f484c2fc21bba64b4"
+  integrity sha512-zT21+3iK82DEW4YbNyVXKS4IdnuIgXCLHUhwQTnc8OS/EeEikUho62eLh3ICf5A72nlRADW50K3N7VAbNiRe5g==
+
 "@lit-labs/ssr-dom-shim@^1.0.0", "@lit-labs/ssr-dom-shim@^1.1.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@lit-labs/ssr-dom-shim/-/ssr-dom-shim-1.2.0.tgz#353ce4a76c83fadec272ea5674ede767650762fd"
