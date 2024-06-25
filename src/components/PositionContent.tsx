@@ -14,7 +14,9 @@ import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
 import "evm-maths";
 import { type SwapParams, fetchSwap } from "@/1inch";
+import { parseNumber } from "@/format";
 import { useSendTransaction } from "@/wagmi";
+import { useAssetApy } from "@/yield";
 import Tooltip from "@mui/material/Tooltip";
 import { ExecutorEncoder } from "executooor";
 import React from "react";
@@ -24,13 +26,41 @@ import AccruingQuantity from "./AccruingQuantity";
 import type { Position } from "./PositionCard";
 import Token from "./Token";
 
+export const usePositionApy = (
+	collateralValue: bigint | undefined,
+	borrowAssets: bigint | undefined,
+	collateralApy: number | undefined,
+	borrowApy: number | null | undefined,
+) =>
+	React.useMemo(() => {
+		if (
+			collateralValue == null ||
+			borrowAssets == null ||
+			collateralApy == null ||
+			borrowApy == null
+		)
+			return;
+		if (collateralValue === borrowAssets) {
+			if (borrowAssets === 0n) return 0;
+
+			return Number.POSITIVE_INFINITY;
+		}
+
+		return (
+			collateralValue.wadMul(parseNumber(collateralApy)) -
+			borrowAssets.wadMul(parseNumber(borrowApy))
+		)
+			.wadDiv(collateralValue - borrowAssets)
+			.toWadFloat();
+	}, [collateralValue, borrowAssets, collateralApy, borrowApy]);
+
 const PositionContent = ({
 	position: {
 		collateral,
 		collateralUsd,
 		borrowAssets,
 		borrowShares,
-		market: { loanAsset, collateralAsset, ...market },
+		market: { loanAsset, collateralAsset, collateralPrice, ...market },
 	},
 }: {
 	position: Omit<Position, "market"> & {
@@ -54,17 +84,19 @@ const PositionContent = ({
 	const { connected } = useSafeAppsSDK();
 
 	const collateralValue = React.useMemo(
-		() => collateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
-		[collateral, market.collateralPrice],
+		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
+		[collateral, collateralPrice],
 	);
+
+	const collateralApy = useAssetApy(collateralAsset.address);
 
 	const balance = React.useMemo(
 		() =>
 			(collateralValue - borrowAssets).mulDivDown(
 				parseUnits("1", 36),
-				market.collateralPrice,
+				collateralPrice,
 			),
-		[borrowAssets, market.collateralPrice, collateralValue],
+		[borrowAssets, collateralPrice, collateralValue],
 	);
 
 	const ltv = React.useMemo(() => {
@@ -108,15 +140,13 @@ const PositionContent = ({
 	);
 
 	const targetLtv = React.useMemo(
-		() =>
-			BigInt.WAD -
-			BigInt.WAD.wadDivUp(parseUnits(leverageField.toFixed(18), 18)),
+		() => BigInt.WAD - BigInt.WAD.wadDivUp(parseNumber(leverageField)),
 		[leverageField],
 	);
 
 	const targetCollateral = React.useMemo(() => {
 		if (withdraw == null) return;
-		if (targetLtv === 0n) return 0n;
+		if (targetLtv === 0n) return balance - withdraw;
 
 		return (balance - withdraw).wadDivDown(BigInt.WAD - targetLtv);
 	}, [balance, withdraw, targetLtv]);
@@ -125,14 +155,13 @@ const PositionContent = ({
 		if (targetCollateral === 0n) return 0n;
 
 		return targetLtv.wadMulDown(
-			targetCollateral.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
+			targetCollateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
 		);
-	}, [market.collateralPrice, targetCollateral, targetLtv]);
+	}, [collateralPrice, targetCollateral, targetLtv]);
 
 	const targetCollateralValue = React.useMemo(
-		() =>
-			targetCollateral?.mulDivDown(market.collateralPrice, parseUnits("1", 36)),
-		[targetCollateral, market.collateralPrice],
+		() => targetCollateral?.mulDivDown(collateralPrice, parseUnits("1", 36)),
+		[targetCollateral, collateralPrice],
 	);
 
 	const resultLtv = React.useMemo(() => {
@@ -147,14 +176,41 @@ const PositionContent = ({
 
 		return (targetCollateralValue - targetLoan).mulDivDown(
 			parseUnits("1", 36),
-			market.collateralPrice,
+			collateralPrice,
 		);
-	}, [targetLoan, market.collateralPrice, targetCollateralValue]);
+	}, [targetLoan, collateralPrice, targetCollateralValue]);
 
-	const borrowApy = market.state?.borrowApy;
-	const dailyBorrowApy = market.dailyApys?.borrowApy;
-	const weeklyBorrowApy = market.weeklyApys?.borrowApy;
-	const monthlyBorrowApy = market.monthlyApys?.borrowApy;
+	const positionApy = usePositionApy(
+		collateralValue,
+		borrowAssets,
+		collateralApy,
+		market.state?.borrowApy,
+	);
+	const dailyPositionApy = usePositionApy(
+		collateralValue,
+		borrowAssets,
+		collateralApy,
+		market.dailyApys?.borrowApy,
+	);
+	const weeklyPositionApy = usePositionApy(
+		collateralValue,
+		borrowAssets,
+		collateralApy,
+		market.weeklyApys?.borrowApy,
+	);
+	const monthlyPositionApy = usePositionApy(
+		collateralValue,
+		borrowAssets,
+		collateralApy,
+		market.monthlyApys?.borrowApy,
+	);
+
+	const targetPositionApy = usePositionApy(
+		targetCollateralValue,
+		targetLoan,
+		collateralApy,
+		market.state?.borrowApy, // TODO: use targetBorrowApy
+	);
 
 	const hasInput = withdraw !== 0n || leverageField !== leverage;
 	const errorMessage = !connected
@@ -173,7 +229,7 @@ const PositionContent = ({
 					<Typography variant="h6">
 						<AccruingQuantity
 							quantity={balance.toFloat(collateralAsset.decimals)}
-							ratePerSecond={borrowApy ?? 0} // TODO: collateral yield - borrow rate
+							ratePerSecond={positionApy ?? 0}
 							precision={Math.min(collateralAsset.decimals, 3)}
 							decimals={Math.min(collateralAsset.decimals, 9)}
 						/>{" "}
@@ -191,13 +247,17 @@ const PositionContent = ({
 							</Stack>
 							<Stack ml={2}>
 								<Typography variant="body2">
-									{monthlyBorrowApy ? (monthlyBorrowApy * 100).toFixed(2) : 0}%
+									{monthlyPositionApy
+										? (monthlyPositionApy * 100).toFixed(2)
+										: 0}
+									%
 								</Typography>
 								<Typography variant="body2">
-									{weeklyBorrowApy ? (weeklyBorrowApy * 100).toFixed(2) : 0}%
+									{weeklyPositionApy ? (weeklyPositionApy * 100).toFixed(2) : 0}
+									%
 								</Typography>
 								<Typography variant="body2">
-									{dailyBorrowApy ? (dailyBorrowApy * 100).toFixed(2) : 0}%
+									{dailyPositionApy ? (dailyPositionApy * 100).toFixed(2) : 0}%
 								</Typography>
 							</Stack>
 						</Stack>
@@ -206,7 +266,7 @@ const PositionContent = ({
 					<Stack alignItems="center" ml={2}>
 						<Typography variant="caption">now</Typography>
 						<Typography variant="h6" mt={-1}>
-							{borrowApy ? (borrowApy * 100).toFixed(2) : 0}%
+							{positionApy ? (positionApy * 100).toFixed(2) : 0}%
 						</Typography>
 					</Stack>
 				</Tooltip>
@@ -293,6 +353,7 @@ const PositionContent = ({
 			<Stack direction="row" justifyContent="space-between" padding={2}>
 				<Stack alignItems="start">
 					<Typography variant="body2">Balance</Typography>
+					<Typography variant="body2">APY</Typography>
 					<Typography variant="body2">LTV</Typography>
 					<Typography variant="body2">Price tolerance</Typography>
 				</Stack>
@@ -310,6 +371,16 @@ const PositionContent = ({
 						</Typography>
 						<Token symbol={collateralAsset.symbol} size={16} />
 					</Stack>
+					{positionApy != null && (
+						<Typography variant="body2">
+							{(positionApy * 100).toFixed(2)}%
+							{targetPositionApy != null && hasInput ? (
+								<> ⇾ {(targetPositionApy * 100).toFixed(2)}%</>
+							) : (
+								""
+							)}
+						</Typography>
+					)}
 					<Typography variant="body2">
 						{ltv.format(16, 2)}%
 						{resultLtv != null && hasInput ? (

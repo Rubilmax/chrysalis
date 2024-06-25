@@ -30,7 +30,7 @@ interface ExecutorOption extends ExecutorDetails {
 
 const filter = createFilterOptions<ExecutorOption>();
 
-const ExecutorSelect = () => {
+const ExecutorSelect = ({ disabled = false }: { disabled?: boolean }) => {
 	const account = useAccount();
 
 	const {
@@ -127,7 +127,7 @@ const ExecutorSelect = () => {
 					: "No saved Executor found"
 			}
 			loading={loading}
-			disabled={status === "pending"}
+			disabled={disabled}
 			autoSelect
 			autoHighlight
 			handleHomeEndKeys

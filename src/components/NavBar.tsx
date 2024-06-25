@@ -32,7 +32,7 @@ const NavBar = () => {
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 
 	const {
-		request: { deployContract },
+		request: { deployContract, isPending },
 		receipt,
 	} = useDeployContract();
 
@@ -53,6 +53,8 @@ const NavBar = () => {
 			owner: account.address,
 		});
 	}, [receipt.data?.contractAddress, account.address, addExecutor]);
+
+	const isDeploying = isPending || receipt.isPending;
 
 	return (
 		<AppBar position="static" elevation={0} color="secondary">
@@ -114,7 +116,7 @@ const NavBar = () => {
 							</Typography>
 						</Alert>
 						<Stack>
-							<ExecutorSelect />
+							<ExecutorSelect disabled={isDeploying} />
 							<Divider>
 								<Typography variant="subtitle1" fontWeight={700}>
 									OR
@@ -123,13 +125,13 @@ const NavBar = () => {
 							<Button
 								variant="contained"
 								endIcon={
-									status === "pending" ? (
+									isDeploying ? (
 										<CircularProgress color="inherit" size={16} />
 									) : (
 										<RocketLaunchIcon />
 									)
 								}
-								disabled={!account.address || status === "pending"}
+								disabled={!account.address || isDeploying}
 								onClick={deployExecutor}
 								sx={{ mt: 2 }}
 							>

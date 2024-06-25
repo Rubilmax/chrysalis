@@ -68,7 +68,7 @@ export const getOneInchSwapApiUrl = (chainId: bigint | number) =>
  */
 export const fetchSwap = async (
 	{ chainId, slippage, ...options }: SwapParams,
-	apiKey = process.env.ONE_INCH_SWAP_API_KEY,
+	apiKey = process.env.NEXT_PUBLIC_ONE_INCH_SWAP_API_KEY,
 ) => {
 	const url = new URL(getOneInchSwapApiPath(chainId), ONE_INCH_API_BASE_URL);
 

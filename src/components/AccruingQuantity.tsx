@@ -1,8 +1,16 @@
 import React from "react";
 
-import "@layflags/rolling-number";
+import { yearInSeconds } from "@/yield";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
+import dynamic from "next/dynamic";
+
+dynamic(
+	() =>
+		// @ts-ignore
+		import("@layflags/rolling-number"),
+	{ ssr: false },
+);
 
 declare global {
 	namespace JSX {
@@ -33,8 +41,7 @@ const AccruingQuantity = ({
 	const [accruingQuantity, setAccruingQuantity] = React.useState(quantity);
 	React.useEffect(() => {
 		const delay = 2;
-		const ratePerInterval =
-			(1 + ratePerSecond) ** (delay / (365.25 * 24 * 60 * 60));
+		const ratePerInterval = (1 + ratePerSecond) ** (delay / yearInSeconds);
 
 		const interval = setInterval(() => {
 			setAccruingQuantity(
