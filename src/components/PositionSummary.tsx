@@ -15,7 +15,7 @@ const PositionSummary = ({
 		market: { loanAsset, collateralAsset, collateralPrice, ...market },
 	},
 	positionApy,
-	collateralApy,
+	collateralApys,
 }: {
 	position: Omit<Position, "market"> & {
 		market: Omit<Position["market"], "collateralAsset" | "collateralPrice"> & {
@@ -24,7 +24,12 @@ const PositionSummary = ({
 		};
 	};
 	positionApy?: number;
-	collateralApy?: number;
+	collateralApys?: {
+		apy?: number;
+		dailyApy?: number;
+		weeklyApy?: number;
+		monthlyApy?: number;
+	};
 }) => {
 	const collateralValue = React.useMemo(
 		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
@@ -43,19 +48,19 @@ const PositionSummary = ({
 	const dailyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApy,
+		collateralApys?.dailyApy,
 		market.dailyApys?.borrowApy,
 	);
 	const weeklyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApy,
+		collateralApys?.weeklyApy,
 		market.weeklyApys?.borrowApy,
 	);
 	const monthlyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApy,
+		collateralApys?.monthlyApy,
 		market.monthlyApys?.borrowApy,
 	);
 

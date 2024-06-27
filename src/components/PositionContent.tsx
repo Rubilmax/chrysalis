@@ -4,7 +4,7 @@ import { parseNumber } from "@/format";
 import { type BestSwapParams, fetchBestSwap } from "@/swap";
 import { useDeployContract } from "@/wagmi";
 import { useSendTransaction } from "@/wagmi";
-import { useAssetApy, usePositionApy } from "@/yield";
+import { useAssetApys, usePositionApy } from "@/yield";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import Button from "@mui/material/Button";
@@ -61,7 +61,7 @@ const PositionContent = ({
 		[collateral, collateralPrice],
 	);
 
-	const [collateralApy] = useAssetApy(collateralAsset.address);
+	const [collateralApys] = useAssetApys(collateralAsset.address);
 
 	const balance = React.useMemo(
 		() =>
@@ -156,14 +156,14 @@ const PositionContent = ({
 	const positionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApy,
+		collateralApys.apy,
 		market.state?.borrowApy,
 	);
 
 	const targetPositionApy = usePositionApy(
 		targetCollateralValue,
 		targetLoan,
-		collateralApy,
+		collateralApys.apy,
 		market.state?.borrowApy, // TODO: use targetBorrowApy
 	);
 
@@ -179,7 +179,7 @@ const PositionContent = ({
 			<PositionSummary
 				position={position}
 				positionApy={positionApy}
-				collateralApy={collateralApy}
+				collateralApys={collateralApys}
 			/>
 			<Divider />
 			<Stack padding={2}>

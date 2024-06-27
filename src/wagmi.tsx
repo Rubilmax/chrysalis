@@ -35,6 +35,9 @@ export const config = createConfig(
 		appDescription: "Minimalist widget for Morpho Blue",
 		appUrl: "https://rubilmax.github.io/chrysalis/",
 		appIcon: appLogoUrl, // no bigger than 1024x1024px (max. 1MB)
+		batch: {
+			multicall: true,
+		},
 	}),
 );
 

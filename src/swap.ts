@@ -1,7 +1,4 @@
-import { type Address, zeroAddress } from "viem";
-import { fetchQuote } from "./0x";
-import { fetchSwap } from "./1inch";
-import { isDefined } from "./utils";
+import type { Address } from "viem";
 
 export interface BestSwapParams {
 	chainId: number;
@@ -24,48 +21,17 @@ export interface BestSwapResponse {
 export const fetchBestSwap = async ({
 	chainId,
 	...options
-}: BestSwapParams) => {
-	const quotes = await Promise.all([
-		fetchSwap({
-			chainId,
-			...options,
-			slippage: options.slippage / 100,
-			disableEstimate: true,
-		})
-			.then(({ dstAmount, tx }) => ({
-				amountOut: dstAmount,
-				res: {
-					spender: tx.to,
-					tx,
-				},
-			}))
-			.catch(console.error),
-		fetchQuote({
-			chainId,
-			sellToken: options.src,
-			buyToken: options.dst,
-			sellAmount: options.amount,
-			takerAddress: options.from,
-			slippagePercentage: options.slippage,
-			skipValidation: true,
-		})
-			.then(({ buyAmount, allowanceTarget, ...tx }) => ({
-				amountOut: buyAmount,
-				res: {
-					spender:
-						allowanceTarget !== zeroAddress ? allowanceTarget : undefined,
-					tx,
-				},
-			}))
-			.catch(console.error),
-	]);
+}: BestSwapParams): Promise<BestSwapResponse> => {
+	const url = new URL(
+		"",
+		"https://6jnmtecqz8.execute-api.eu-west-3.amazonaws.com",
+	);
 
-	const successQuotes = quotes.filter(isDefined);
-	if (successQuotes.length === 0) throw Error("no successful quote");
+	for (const [key, value] of Object.entries(options)) {
+		url.searchParams.set(key, value.toString());
+	}
 
-	return successQuotes.reduce(
-		(prev, current) =>
-			prev && prev.amountOut > current.amountOut ? prev : current,
-		successQuotes[0]!,
-	).res;
+	const res = await fetch(url);
+
+	return res.json();
 };
