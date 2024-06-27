@@ -1,0 +1,29 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: chrysalis
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: chrysalis
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: chrysalis-router
+
+provider:
+  name: aws
+  region: eu-west-3
+  runtime: nodejs20.x
+
+build:
+  esbuild:
+    bundle: true
+    minify: true
+
+functions:
+  hello:
+    handler: handler.hello
+    memorySize: 128
+    timeout: 3
+    reservedConcurrency: 1
+    environment:
+      APP_ENV_VARIABLE: FOOBAR
+    events:
+      - httpApi:
+          path: /
+          method: get

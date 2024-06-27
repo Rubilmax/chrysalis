@@ -1,5 +1,5 @@
 {
-  "name": "chrysalis",
+  "name": "chrysalis-ui",
   "version": "1.0.0",
   "author": {
     "name": "Romain (Rubilmax) Milon",
@@ -9,11 +9,14 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "postinstall": "yarn --cwd api",
     "prepare": "husky",
-    "dev": "next dev",
+    "dev:ui": "next dev",
+    "dev:api": "yarn --cwd api dev",
     "build": "next build",
     "start": "next start",
-    "codegen": "graphql-codegen --config codegen.ts && biome check --write src/graphql/"
+    "codegen": "graphql-codegen --config codegen.ts && biome check --write src/graphql/",
+    "deploy:api": "yarn --cwd api deploy"
   },
   "repository": {
     "type": "git",

@@ -1,15 +1,14 @@
 "use client";
 
-import { useGetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
-import React, { useMemo } from "react";
-import { useAccount, useChainId } from "wagmi";
-import "evm-maths";
 import NavBar from "@/components/NavBar";
 import PositionCard from "@/components/PositionCard";
+import { useGetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
 import Container from "@mui/material/Container";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import React, { useMemo } from "react";
+import { useAccount, useChainId } from "wagmi";
 
 const App = () => {
 	const account = useAccount();

@@ -1,9 +1,14 @@
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { useEthersProvider } from "@/ethers";
+import { parseNumber } from "@/format";
+import { type BestSwapParams, fetchBestSwap } from "@/swap";
 import { useDeployContract } from "@/wagmi";
+import { useSendTransaction } from "@/wagmi";
+import { useAssetApy, usePositionApy } from "@/yield";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -12,56 +17,16 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
-import "evm-maths";
-import { type SwapParams, fetchSwap } from "@/1inch";
-import { parseNumber } from "@/format";
-import { useSendTransaction } from "@/wagmi";
-import { useAssetApy } from "@/yield";
-import Tooltip from "@mui/material/Tooltip";
 import { ExecutorEncoder } from "executooor";
 import React from "react";
-import { type Address, maxUint256, parseUnits } from "viem";
+import { maxUint256, parseUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
-import AccruingQuantity from "./AccruingQuantity";
 import type { Position } from "./PositionCard";
+import PositionSummary from "./PositionSummary";
 import Token from "./Token";
 
-export const usePositionApy = (
-	collateralValue: bigint | undefined,
-	borrowAssets: bigint | undefined,
-	collateralApy: number | undefined,
-	borrowApy: number | null | undefined,
-) =>
-	React.useMemo(() => {
-		if (
-			collateralValue == null ||
-			borrowAssets == null ||
-			collateralApy == null ||
-			borrowApy == null
-		)
-			return;
-		if (collateralValue === borrowAssets) {
-			if (borrowAssets === 0n) return 0;
-
-			return Number.POSITIVE_INFINITY;
-		}
-
-		return (
-			collateralValue.wadMul(parseNumber(collateralApy)) -
-			borrowAssets.wadMul(parseNumber(borrowApy))
-		)
-			.wadDiv(collateralValue - borrowAssets)
-			.toWadFloat();
-	}, [collateralValue, borrowAssets, collateralApy, borrowApy]);
-
 const PositionContent = ({
-	position: {
-		collateral,
-		collateralUsd,
-		borrowAssets,
-		borrowShares,
-		market: { loanAsset, collateralAsset, collateralPrice, ...market },
-	},
+	position,
 }: {
 	position: Omit<Position, "market"> & {
 		market: Omit<Position["market"], "collateralAsset" | "collateralPrice"> & {
@@ -70,6 +35,14 @@ const PositionContent = ({
 		};
 	};
 }) => {
+	const {
+		collateral,
+		collateralUsd,
+		borrowAssets,
+		borrowShares,
+		market: { loanAsset, collateralAsset, collateralPrice, ...market },
+	} = position;
+
 	const {
 		request: { sendTransaction },
 	} = useSendTransaction();
@@ -88,7 +61,7 @@ const PositionContent = ({
 		[collateral, collateralPrice],
 	);
 
-	const collateralApy = useAssetApy(collateralAsset.address);
+	const [collateralApy] = useAssetApy(collateralAsset.address);
 
 	const balance = React.useMemo(
 		() =>
@@ -186,24 +159,6 @@ const PositionContent = ({
 		collateralApy,
 		market.state?.borrowApy,
 	);
-	const dailyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		collateralApy,
-		market.dailyApys?.borrowApy,
-	);
-	const weeklyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		collateralApy,
-		market.weeklyApys?.borrowApy,
-	);
-	const monthlyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		collateralApy,
-		market.monthlyApys?.borrowApy,
-	);
 
 	const targetPositionApy = usePositionApy(
 		targetCollateralValue,
@@ -217,60 +172,15 @@ const PositionContent = ({
 		? "You must log in through the Safe App."
 		: "";
 
+	const [isPreparing, setIsPreparing] = React.useState(false);
+
 	return (
 		<>
-			<Stack
-				direction="row"
-				justifyContent="space-between"
-				alignItems="center"
-				padding={2}
-			>
-				<Stack>
-					<Typography variant="h6">
-						<AccruingQuantity
-							quantity={balance.toFloat(collateralAsset.decimals)}
-							ratePerSecond={positionApy ?? 0}
-							precision={Math.min(collateralAsset.decimals, 3)}
-							decimals={Math.min(collateralAsset.decimals, 9)}
-						/>{" "}
-						<Token symbol={collateralAsset.symbol} size={20} />
-					</Typography>
-				</Stack>
-				<Tooltip
-					placement="top"
-					title={
-						<Stack direction="row" justifyContent="space-between">
-							<Stack alignItems="end">
-								<Typography variant="caption">30d</Typography>
-								<Typography variant="caption">7d</Typography>
-								<Typography variant="caption">1d</Typography>
-							</Stack>
-							<Stack ml={2}>
-								<Typography variant="body2">
-									{monthlyPositionApy
-										? (monthlyPositionApy * 100).toFixed(2)
-										: 0}
-									%
-								</Typography>
-								<Typography variant="body2">
-									{weeklyPositionApy ? (weeklyPositionApy * 100).toFixed(2) : 0}
-									%
-								</Typography>
-								<Typography variant="body2">
-									{dailyPositionApy ? (dailyPositionApy * 100).toFixed(2) : 0}%
-								</Typography>
-							</Stack>
-						</Stack>
-					}
-				>
-					<Stack alignItems="center" ml={2}>
-						<Typography variant="caption">now</Typography>
-						<Typography variant="h6" mt={-1}>
-							{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-						</Typography>
-					</Stack>
-				</Tooltip>
-			</Stack>
+			<PositionSummary
+				position={position}
+				positionApy={positionApy}
+				collateralApy={collateralApy}
+			/>
 			<Divider />
 			<Stack padding={2}>
 				<TextField
@@ -422,115 +332,134 @@ const PositionContent = ({
 				</Typography>
 				<Button
 					variant="contained"
-					startIcon={withdraw === balance ? <CloseIcon /> : <EditIcon />}
+					startIcon={
+						isPreparing ? (
+							<CircularProgress color="inherit" size={16} />
+						) : withdraw === balance ? (
+							<CloseIcon />
+						) : (
+							<EditIcon />
+						)
+					}
 					disableElevation
 					onClick={async () => {
-						if (
-							!account.address ||
-							account.chainId == null ||
-							targetCollateral == null ||
-							targetLoan == null
-						)
-							return;
-						if (!executor) return;
+						setIsPreparing(true);
 
-						const marketParams = {
-							collateralToken: collateralAsset.address,
-							loanToken: loanAsset.address,
-							irm: market.irmAddress,
-							oracle: market.oracleAddress,
-							lltv: market.lltv,
-						};
+						try {
+							if (
+								!account.address ||
+								account.chainId == null ||
+								targetCollateral == null ||
+								targetLoan == null
+							)
+								return;
+							if (!executor) return;
 
-						const suppliedCollateral = targetCollateral - collateral;
-						const borrowedAssets = targetLoan - borrowAssets;
-
-						const encoder = new ExecutorEncoder(executor.address, provider);
-
-						if (suppliedCollateral < 0n)
-							encoder.morphoBlueWithdrawCollateral(
-								market.morphoBlue.address,
-								marketParams,
-								-suppliedCollateral,
-								account.address,
-								account.address,
-							);
-
-						if (borrowedAssets > 0n)
-							encoder.morphoBlueBorrow(
-								market.morphoBlue.address,
-								marketParams,
-								borrowedAssets,
-								0n,
-								account.address,
-								account.address,
-							);
-
-						let srcToken: Address;
-						let params: SwapParams | null = null;
-						if (borrowedAssets < 0n && suppliedCollateral < 0n) {
-							params = {
-								chainId: account.chainId,
-								src: collateralAsset.address,
-								dst: loanAsset.address,
-								amount: -suppliedCollateral,
-								from: account.address,
-								slippage: 5n,
+							const marketParams = {
+								collateralToken: collateralAsset.address,
+								loanToken: loanAsset.address,
+								irm: market.irmAddress,
+								oracle: market.oracleAddress,
+								lltv: market.lltv,
 							};
-						} else if (borrowedAssets > 0n && suppliedCollateral > 0n) {
-							params = {
-								chainId: account.chainId,
-								src: loanAsset.address,
-								dst: collateralAsset.address,
-								amount: borrowedAssets,
-								from: account.address,
-								slippage: 5n,
-							};
-						}
 
-						if (params != null) {
-							const swap = await fetchSwap(params);
+							const suppliedCollateral = targetCollateral - collateral;
+							const borrowedAssets = targetLoan - borrowAssets;
 
-							encoder
-								.erc20Approve(params.src, swap.tx.to, params.amount)
-								.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
-						}
+							const encoder = new ExecutorEncoder(executor.address, provider);
 
-						if (suppliedCollateral > 0n)
-							encoder.morphoBlueSupplyCollateral(
-								market.morphoBlue.address,
-								marketParams,
-								suppliedCollateral,
-								account.address,
-								encoder.flush(),
-							);
-
-						if (borrowedAssets < 0n) {
-							if (targetLoan === 0n)
-								encoder.morphoBlueRepay(
+							if (suppliedCollateral < 0n)
+								encoder.morphoBlueWithdrawCollateral(
 									market.morphoBlue.address,
 									marketParams,
+									-suppliedCollateral,
+									account.address,
+									account.address,
+								);
+
+							if (borrowedAssets > 0n)
+								encoder.morphoBlueBorrow(
+									market.morphoBlue.address,
+									marketParams,
+									borrowedAssets,
 									0n,
-									borrowShares,
+									account.address,
+									account.address,
+								);
+
+							let params: BestSwapParams | null = null;
+							if (borrowedAssets < 0n && suppliedCollateral < 0n) {
+								params = {
+									chainId: account.chainId,
+									src: collateralAsset.address,
+									dst: loanAsset.address,
+									from: account.address,
+									amount: -suppliedCollateral,
+									slippage: 0.005,
+								};
+							} else if (borrowedAssets > 0n && suppliedCollateral > 0n) {
+								params = {
+									chainId: account.chainId,
+									src: loanAsset.address,
+									dst: collateralAsset.address,
+									from: account.address,
+									amount: borrowedAssets,
+									slippage: 0.005,
+								};
+							}
+
+							if (params != null) {
+								const swap = await fetchBestSwap(params);
+
+								if (swap.spender)
+									// TODO: check if allowance sufficient.
+									encoder.erc20Approve(params.src, swap.spender, params.amount);
+
+								console.log(swap);
+
+								encoder.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
+							}
+
+							if (suppliedCollateral > 0n)
+								encoder.morphoBlueSupplyCollateral(
+									market.morphoBlue.address,
+									marketParams,
+									suppliedCollateral,
 									account.address,
 									encoder.flush(),
 								);
-							else
-								encoder.morphoBlueRepay(
-									market.morphoBlue.address,
-									marketParams,
-									-borrowedAssets,
-									0n,
-									account.address,
-									encoder.flush(),
-								);
-						}
 
-						if (connected) {
-						} else {
+							if (borrowedAssets < 0n) {
+								if (targetLoan === 0n)
+									encoder.morphoBlueRepay(
+										market.morphoBlue.address,
+										marketParams,
+										0n,
+										borrowShares,
+										account.address,
+										encoder.flush(),
+									);
+								else
+									encoder.morphoBlueRepay(
+										market.morphoBlue.address,
+										marketParams,
+										-borrowedAssets,
+										0n,
+										account.address,
+										encoder.flush(),
+									);
+							}
+
+							if (connected) {
+							} else {
+							}
+						} catch (error) {
+							console.error(error);
+						} finally {
+							setIsPreparing(false);
 						}
 					}}
-					disabled={!executor || !connected || !!withdrawError}
+					disabled={!executor || !!withdrawError}
 				>
 					{withdraw === balance ? "Close" : "Adjust"}
 				</Button>
