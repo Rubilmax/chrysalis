@@ -53,11 +53,6 @@ export interface SwapResponse {
 
 export const ONE_INCH_API_BASE_URL = "https://api.1inch.dev";
 
-export const getOneInchSwapApiPath = (chainId: bigint | number) =>
-	`/swap/v6.0/${chainId}/swap`;
-export const getOneInchSwapApiUrl = (chainId: bigint | number) =>
-	new URL(getOneInchSwapApiPath(chainId), ONE_INCH_API_BASE_URL).toString();
-
 /**
  * @param srcTokenAddress The token to swap from (native token: 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE).
  * @param dst The token to swap to (native token: 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE).
@@ -68,11 +63,11 @@ export const getOneInchSwapApiUrl = (chainId: bigint | number) =>
  */
 export const fetchSwap = async (
 	{ chainId, ...options }: SwapParams,
-	apiKey = process.env.NEXT_PUBLIC_1INCH_SWAP_API_KEY,
+	apiKey = process.env.ONE_INCH_SWAP_API_KEY,
 ) => {
 	if (!apiKey) throw Error("undefined api key");
 
-	const url = new URL(getOneInchSwapApiPath(chainId), ONE_INCH_API_BASE_URL);
+	const url = new URL(`/swap/v6.0/${chainId}/swap`, ONE_INCH_API_BASE_URL);
 
 	for (const [key, value] of Object.entries(options)) {
 		url.searchParams.set(key, value.toString());

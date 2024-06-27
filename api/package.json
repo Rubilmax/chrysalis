@@ -26,6 +26,7 @@
     "typescript": "^5.5.2"
   },
   "dependencies": {
-    "aws-lambda": "^1.0.7"
+    "aws-lambda": "^1.0.7",
+    "viem": "^2.14.1"
   }
 }

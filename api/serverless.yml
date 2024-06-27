@@ -16,13 +16,15 @@ build:
     minify: true
 
 functions:
-  hello:
-    handler: handler.hello
+  swap:
+    handler: src/handler.swap
     memorySize: 128
     timeout: 3
     reservedConcurrency: 1
     environment:
-      APP_ENV_VARIABLE: FOOBAR
+      ONE_INCH_SWAP_API_KEY: ${env:ONE_INCH_SWAP_API_KEY}
+      ZERO_X_SWAP_API_KEY: ${env:ZERO_X_SWAP_API_KEY}
+
     events:
       - httpApi:
           path: /

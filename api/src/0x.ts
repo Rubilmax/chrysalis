@@ -57,7 +57,7 @@ export const ZERO_X_API_BASE_URL: Record<number, string> = {
  */
 export const fetchQuote = async (
 	{ chainId, ...options }: QuoteParams,
-	apiKey = process.env.NEXT_PUBLIC_0X_SWAP_API_KEY,
+	apiKey = process.env.ZERO_X_SWAP_API_KEY,
 ) => {
 	if (!apiKey) throw Error("undefined api key");
 
