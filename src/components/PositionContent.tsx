@@ -201,22 +201,20 @@ const PositionContent = ({
 							<Typography variant="caption">
 								{withdrawError || withdraw == null
 									? withdrawError
-									: collateralUsd
+									: collateralUsd != null
 										? `$${(collateralUsd * withdraw.wadDiv(collateral).toWadFloat()).toFixed(2)}`
 										: ""}
 							</Typography>
-							{balance && (
-								<Typography
-									variant="caption"
-									color="text.secondary"
-									onClick={() =>
-										setWithdrawField(balance.format(collateralAsset.decimals))
-									}
-									sx={{ cursor: "pointer", textDecoration: "underline" }}
-								>
-									MAX: {balance.format(collateralAsset.decimals, 3)}
-								</Typography>
-							)}
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								onClick={() =>
+									setWithdrawField(balance.format(collateralAsset.decimals))
+								}
+								sx={{ cursor: "pointer", textDecoration: "underline" }}
+							>
+								MAX: {balance.format(collateralAsset.decimals, 3)}
+							</Typography>
 						</Stack>
 					}
 					FormHelperTextProps={{ component: "div" }}
@@ -269,7 +267,7 @@ const PositionContent = ({
 				</Stack>
 				<Stack alignItems="end">
 					<Stack direction="row" alignItems="center">
-						<Typography variant="body2" pr={0.8}>
+						<Typography variant="body2" mr={0.8}>
 							{balance.format(collateralAsset.decimals, 3)}
 							{targetBalance != null &&
 							targetBalance !== balance &&

@@ -1,3 +1,5 @@
+"use client";
+
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { executorDeployData } from "@/executor";
 import { useDeployContract } from "@/wagmi";
@@ -53,13 +55,14 @@ const NavBar = () => {
 		});
 	}, [receipt.data?.contractAddress, account.address, addExecutor]);
 
-	const isDeploying = isPending || receipt.isPending;
+	const isDeploying =
+		isPending || (receipt.isPending && receipt.fetchStatus !== "idle");
 
 	return (
 		<AppBar position="static" elevation={0} color="secondary">
 			<Toolbar>
 				<Image
-					src="./chrysalis.png"
+					src="/chrysalis.png"
 					alt="Logo"
 					width={40}
 					height={40}

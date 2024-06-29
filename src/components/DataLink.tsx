@@ -1,6 +1,7 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
 import Typography, { type TypographyOwnProps } from "@mui/material/Typography";
 import React from "react";
 import { getAddress } from "viem";
@@ -16,6 +17,7 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 
 	const copyToClipboard = React.useCallback(
 		async (event: React.MouseEvent) => {
+			event.preventDefault();
 			event.stopPropagation();
 
 			await navigator.clipboard.writeText(data);
@@ -39,14 +41,16 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 				<Typography {...props} noWrap>
 					{ens ?? dataLabel}
 				</Typography>
-				<IconButton sx={{ fontSize: 14, marginLeft: 0.5 }}>
+				<IconButton
+					sx={{ fontSize: 12, padding: 0.4, marginLeft: 0.6, borderRadius: 1 }}
+				>
 					<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
 				</IconButton>
 			</>
 		);
 
 	return (
-		<>
+		<Stack direction="row" alignItems="center">
 			<Typography
 				color="inherit"
 				fontSize="inherit"
@@ -59,6 +63,9 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 				target="_blank"
 				rel="noopener noreferrer"
 				sx={{ verticalAlign: "middle" }}
+				onClick={(event) => {
+					event.stopPropagation();
+				}}
 				noWrap
 			>
 				{ens ?? dataLabel}
@@ -70,7 +77,7 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 			>
 				<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
 			</IconButton>
-		</>
+		</Stack>
 	);
 };
 

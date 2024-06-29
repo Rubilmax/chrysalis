@@ -183,6 +183,7 @@ export type Market = {
 	/** Monthly market APYs */
 	monthlyApys: Maybe<MarketApyAggregates>;
 	morphoBlue: MorphoBlue;
+	oracle: Maybe<Oracle>;
 	oracleAddress: Scalars["Address"]["output"];
 	/** Feeds used by the oracle if provided by the contract */
 	oracleFeed: Maybe<MarketOracleFeed>;
@@ -803,12 +804,81 @@ export type MorphoBlueStateHistoryVaultCountArgs = {
 	options?: InputMaybe<TimeseriesOptions>;
 };
 
+/** Morpho chainlink oracle data */
+export type MorphoChainlinkOracleData = {
+	__typename?: "MorphoChainlinkOracleData";
+	baseFeedOne: Maybe<OracleFeed>;
+	baseFeedTwo: Maybe<OracleFeed>;
+	quoteFeedOne: Maybe<OracleFeed>;
+	quoteFeedTwo: Maybe<OracleFeed>;
+	scaleFactor: Scalars["BigInt"]["output"];
+	vault: Scalars["String"]["output"];
+	vaultConversionSample: Scalars["BigInt"]["output"];
+};
+
+/** Morpho chainlink oracle v2 data */
+export type MorphoChainlinkOracleV2Data = {
+	__typename?: "MorphoChainlinkOracleV2Data";
+	baseFeedOne: Maybe<OracleFeed>;
+	baseFeedTwo: Maybe<OracleFeed>;
+	baseVault: Scalars["String"]["output"];
+	baseVaultConversionSample: Scalars["BigInt"]["output"];
+	quoteFeedOne: Maybe<OracleFeed>;
+	quoteFeedTwo: Maybe<OracleFeed>;
+	quoteVault: Scalars["String"]["output"];
+	quoteVaultConversionSample: Scalars["BigInt"]["output"];
+	scaleFactor: Scalars["BigInt"]["output"];
+};
+
+/** Oracle */
+export type Oracle = {
+	__typename?: "Oracle";
+	/** Oracle contract address */
+	address: Scalars["Address"]["output"];
+	chain: Chain;
+	data: Maybe<OracleData>;
+	id: Scalars["ID"]["output"];
+	markets: Array<Market>;
+	/** Oracle type */
+	type: OracleType;
+};
+
+export type OracleData =
+	| MorphoChainlinkOracleData
+	| MorphoChainlinkOracleV2Data;
+
+/** Oracle Feed */
+export type OracleFeed = {
+	__typename?: "OracleFeed";
+	/** Feed contract address */
+	address: Scalars["Address"]["output"];
+	chain: Chain;
+	description: Maybe<Scalars["String"]["output"]>;
+	id: Scalars["ID"]["output"];
+	pair: Maybe<Array<Scalars["String"]["output"]>>;
+	vendor: Maybe<Scalars["String"]["output"]>;
+};
+
+export type OracleFeedsFilters = {
+	/** Filter by feed contract address. Case insensitive. */
+	address_in?: InputMaybe<Array<Scalars["String"]["input"]>>;
+	/** Filter by chain id */
+	chainId_in?: InputMaybe<Array<Scalars["Int"]["input"]>>;
+};
+
 export enum OracleType {
 	ChainlinkOracle = "ChainlinkOracle",
 	ChainlinkOracleV2 = "ChainlinkOracleV2",
 	CustomOracle = "CustomOracle",
 	Unknown = "Unknown",
 }
+
+export type OraclesFilters = {
+	/** Filter by oracle contract address. Case insensitive. */
+	address_in?: InputMaybe<Array<Scalars["String"]["input"]>>;
+	/** Filter by chain id */
+	chainId_in?: InputMaybe<Array<Scalars["Int"]["input"]>>;
+};
 
 export enum OrderDirection {
 	Asc = "Asc",
@@ -860,6 +930,18 @@ export type PaginatedMetaMorphos = {
 export type PaginatedMorphoBlue = {
 	__typename?: "PaginatedMorphoBlue";
 	items: Maybe<Array<MorphoBlue>>;
+	pageInfo: Maybe<PageInfo>;
+};
+
+export type PaginatedOracleFeeds = {
+	__typename?: "PaginatedOracleFeeds";
+	items: Maybe<Array<OracleFeed>>;
+	pageInfo: Maybe<PageInfo>;
+};
+
+export type PaginatedOracles = {
+	__typename?: "PaginatedOracles";
+	items: Maybe<Array<Oracle>>;
 	pageInfo: Maybe<PageInfo>;
 };
 
@@ -1015,6 +1097,10 @@ export type Query = {
 	morphoBlue: MorphoBlue;
 	morphoBlueByAddress: MorphoBlue;
 	morphoBlues: PaginatedMorphoBlue;
+	oracleByAddress: Oracle;
+	oracleFeedByAddress: OracleFeed;
+	oracleFeeds: PaginatedOracleFeeds;
+	oracles: PaginatedOracles;
 	publicAllocator: PublicAllocator;
 	publicAllocatorReallocates: PaginatedPublicAllocatorReallocates;
 	publicAllocators: PaginatedPublicAllocator;
@@ -1120,6 +1206,28 @@ export type QueryMorphoBluesArgs = {
 	orderDirection?: InputMaybe<OrderDirection>;
 	skip?: InputMaybe<Scalars["Int"]["input"]>;
 	where?: InputMaybe<MorphoBlueFilters>;
+};
+
+export type QueryOracleByAddressArgs = {
+	address: Scalars["String"]["input"];
+	chainId?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
+export type QueryOracleFeedByAddressArgs = {
+	address: Scalars["String"]["input"];
+	chainId?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
+export type QueryOracleFeedsArgs = {
+	first?: InputMaybe<Scalars["Int"]["input"]>;
+	skip?: InputMaybe<Scalars["Int"]["input"]>;
+	where?: InputMaybe<OracleFeedsFilters>;
+};
+
+export type QueryOraclesArgs = {
+	first?: InputMaybe<Scalars["Int"]["input"]>;
+	skip?: InputMaybe<Scalars["Int"]["input"]>;
+	where?: InputMaybe<OraclesFilters>;
 };
 
 export type QueryPublicAllocatorArgs = {
@@ -1425,6 +1533,8 @@ export enum UsersOrderBy {
 export type Vault = {
 	__typename?: "Vault";
 	address: Scalars["Address"]["output"];
+	/** Vault allocators */
+	allocators: Maybe<Array<VaultAllocator>>;
 	asset: Asset;
 	chain: Chain;
 	creationBlockNumber: Scalars["Int"]["output"];
@@ -1450,6 +1560,8 @@ export type Vault = {
 	/** Monthly vault APYs */
 	monthlyApys: Maybe<VaultApyAggregates>;
 	name: Scalars["String"]["output"];
+	/** Vault pending caps */
+	pendingCaps: Maybe<Array<VaultPendingCap>>;
 	/** Public allocator configuration */
 	publicAllocatorConfig: Maybe<PublicAllocatorConfig>;
 	state: Maybe<VaultState>;
@@ -1527,6 +1639,17 @@ export type VaultAllocationHistorySupplyCapArgs = {
 /** MetaMorpho vault allocation history */
 export type VaultAllocationHistorySupplyCapUsdArgs = {
 	options?: InputMaybe<TimeseriesOptions>;
+};
+
+/** Vault allocator */
+export type VaultAllocator = {
+	__typename?: "VaultAllocator";
+	/** Allocator adress. */
+	address: Scalars["Address"]["output"];
+	/** Allocator since block number */
+	blockNumber: Scalars["BigInt"]["output"];
+	/** Allocator since timestamp */
+	timestamp: Scalars["BigInt"]["output"];
 };
 
 /** Vault APY aggregates */
@@ -1710,6 +1833,16 @@ export enum VaultOrderBy {
 	TotalAssetsUsd = "TotalAssetsUsd",
 	TotalSupply = "TotalSupply",
 }
+
+/** Vault pending cap */
+export type VaultPendingCap = {
+	__typename?: "VaultPendingCap";
+	market: Market;
+	/** Pending supply cap */
+	supplyCap: Scalars["BigInt"]["output"];
+	/** Pending supply cap apply timestamp */
+	validAt: Scalars["BigInt"]["output"];
+};
 
 /** MetaMorpho vault position */
 export type VaultPosition = {

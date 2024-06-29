@@ -1,70 +1,311 @@
 "use client";
 
-import NavBar from "@/components/NavBar";
-import PositionCard from "@/components/PositionCard";
-import { useGetUserMarketPositionsQuery } from "@/graphql/GetMarketPositions.query.generated";
-import Container from "@mui/material/Container";
+import "evm-maths";
+import Token from "@/components/Token";
+import { useGetAssetsQuery } from "@/graphql/GetAssets.query.generated";
+import type { Asset } from "@/graphql/types";
+import { useErc20Balance } from "@/wagmi";
+import CloseIcon from "@mui/icons-material/Close";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SearchIcon from "@mui/icons-material/Search";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import React, { useMemo } from "react";
+import { useLocalStorage } from "@uidotdev/usehooks";
+import { FixedSizeList, type ListChildComponentProps } from "react-window";
+
+import DataLink from "@/components/DataLink";
+import Divider from "@mui/material/Divider";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import React from "react";
+import { type Address, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
 
-const App = () => {
+const AssetOption = React.memo(
+	({
+		user,
+		asset,
+		onClick,
+		style,
+	}: {
+		user?: Address;
+		asset: Pick<Asset, "address" | "symbol" | "decimals" | "name">;
+		onClick: () => void;
+		style: ListChildComponentProps["style"];
+	}) => {
+		const { data } = useErc20Balance(asset?.address, user);
+
+		return (
+			<ListItem
+				key={asset.address}
+				secondaryAction={
+					data && (
+						<Typography variant="body1" fontWeight={500}>
+							{data.format(asset.decimals, 3)}
+						</Typography>
+					)
+				}
+				style={style}
+				disablePadding
+			>
+				<ListItemButton onClick={onClick}>
+					<ListItemIcon>
+						<Token symbol={asset.symbol} noSymbol />
+					</ListItemIcon>
+					<ListItemText
+						primary={asset.name}
+						secondary={
+							<>
+								{asset.symbol}
+								<DataLink
+									variant="caption"
+									color="text.disabled"
+									fontWeight={400}
+									fontSize={12}
+									data={asset.address}
+									type="address"
+								/>
+							</>
+						}
+						primaryTypographyProps={{
+							fontWeight: 500,
+							textOverflow: "ellipsis",
+							overflow: "hidden",
+							whiteSpace: "nowrap",
+						}}
+						secondaryTypographyProps={{
+							component: "div",
+							display: "flex",
+							flexDirection: "column",
+						}}
+					/>
+				</ListItemButton>
+			</ListItem>
+		);
+	},
+);
+
+export default function Home() {
 	const account = useAccount();
 	const chainId = useChainId();
 
-	const { data, loading, error } = useGetUserMarketPositionsQuery({
+	const { data, loading, error } = useGetAssetsQuery({
 		variables: {
-			address: account.address!,
 			chainId,
 		},
-		skip: !account.address,
 	});
 
-	const positions = useMemo(
-		() =>
-			data?.userByAddress.marketPositions?.filter(
-				(position) => position.borrowShares > 0n && position.collateral > 0n,
-			),
-		[data],
+	const [asset, setAsset] = useLocalStorage<
+		Pick<Asset, "address" | "symbol" | "decimals" | "priceUsd"> | undefined
+	>("selectedAsset");
+	React.useEffect(() => {
+		const firstAsset = data?.assets.items?.[0];
+		if (!firstAsset) return;
+
+		setAsset((asset) => {
+			if (asset == null) return firstAsset;
+
+			return asset;
+		});
+	}, [data, setAsset]);
+
+	const { data: balance } = useErc20Balance(asset?.address, account.address);
+
+	const [amountField, setAmountField] = React.useState("");
+	const { amount, amountError } = React.useMemo(() => {
+		if (!asset?.decimals || amountField === "") return { amount: 0n };
+
+		const [unit, decimals] = amountField.split(".");
+		if (decimals && decimals.length > asset.decimals)
+			return { amountError: "Too many decimals" };
+
+		const amount = parseUnits(amountField, asset.decimals ?? 18);
+		if (balance != null && amount > balance)
+			return { amountError: "Insufficient balance" };
+
+		return { amount };
+	}, [amountField, balance, asset?.decimals]);
+
+	const [assetsOpen, setAssetsOpen] = React.useState(false);
+
+	const [searchField, setSearchField] = React.useState("");
+
+	const filteredAssets = data?.assets.items?.filter(
+		(asset) =>
+			asset.address.toLowerCase().includes(searchField) ||
+			asset.name.toLowerCase().includes(searchField) ||
+			asset.symbol.toLowerCase().includes(searchField),
 	);
 
 	return (
 		<>
-			<NavBar />
-
-			<Container maxWidth="lg">
-				<Stack
-					direction="row"
-					justifyContent="center"
-					alignItems="center"
-					minHeight={500}
-					mt={4}
-				>
-					{loading ? (
-						<Skeleton height={700} width={350} />
-					) : (
-						positions && (
-							<>
-								{positions.map((position) => (
-									<PositionCard
-										key={position.market.uniqueKey}
-										position={position}
-									/>
-								))}
-								{positions.length === 0 && (
-									<Typography variant="h6" color="#666">
-										You have no borrow position on Morpho.
+			<Paper>
+				<Stack p={2}>
+					<TextField
+						value={amountField}
+						onChange={(event) =>
+							setAmountField(
+								event.target.value
+									.replaceAll(",", ".")
+									.replaceAll(/[^0-9.]/g, "")
+									.split(".")
+									.slice(0, 2)
+									.join("."),
+							)
+						}
+						error={!!amountError}
+						helperText={
+							<Stack direction="row" justifyContent="space-between">
+								<Typography variant="caption">
+									{amountError || amount == null
+										? amountError
+										: asset?.priceUsd != null
+											? `$${(asset.priceUsd * amount.toWadFloat()).toFixed(2)}`
+											: ""}
+								</Typography>
+								{asset && balance != null && (
+									<Typography
+										variant="caption"
+										color="text.secondary"
+										onClick={() =>
+											setAmountField(balance.format(asset.decimals))
+										}
+										sx={{ cursor: "pointer", textDecoration: "underline" }}
+									>
+										MAX: {balance.format(asset.decimals, 3)}
 									</Typography>
 								)}
-							</>
-						)
-					)}
+							</Stack>
+						}
+						FormHelperTextProps={{ component: "div" }}
+						InputProps={{
+							endAdornment: asset ? (
+								<InputAdornment position="end">
+									{amount !== 0n && (
+										<IconButton edge="end" onClick={() => setAmountField("")}>
+											<CloseIcon />
+										</IconButton>
+									)}
+
+									<Button
+										variant="outlined"
+										color="info"
+										onClick={() => setAssetsOpen(true)}
+									>
+										<Token symbol={asset.symbol} size={20} />
+										<ExpandMoreIcon />
+									</Button>
+								</InputAdornment>
+							) : (
+								<Skeleton height={50} width={180} />
+							),
+						}}
+						sx={{ minWidth: 350 }}
+						variant="outlined"
+						label="Deposit"
+					/>
 				</Stack>
-			</Container>
+			</Paper>
+
+			<Dialog
+				open={assetsOpen}
+				onClose={() => setAssetsOpen(false)}
+				maxWidth="xs"
+				fullWidth
+			>
+				<Stack
+					direction="row"
+					justifyContent="space-between"
+					alignItems="center"
+				>
+					<DialogTitle>Select a token</DialogTitle>
+					<IconButton
+						aria-label="close"
+						onClick={() => setAssetsOpen(false)}
+						sx={{ marginRight: 1 }}
+					>
+						<CloseIcon />
+					</IconButton>
+				</Stack>
+				<DialogContent sx={{ padding: 0 }} dividers>
+					<Stack p={2}>
+						<TextField
+							value={searchField}
+							onChange={(event) => setSearchField(event.target.value)}
+							placeholder="Search name or symbol"
+							FormHelperTextProps={{ component: "div" }}
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<SearchIcon />
+									</InputAdornment>
+								),
+								endAdornment: searchField && (
+									<InputAdornment position="end">
+										<IconButton edge="end" onClick={() => setSearchField("")}>
+											<CloseIcon />
+										</IconButton>
+									</InputAdornment>
+								),
+							}}
+							autoFocus
+							fullWidth
+						/>
+					</Stack>
+					<Divider />
+					<List
+						subheader={
+							<ListSubheader>
+								{searchField ? "Search results" : "All tokens"}
+							</ListSubheader>
+						}
+					>
+						{filteredAssets?.length ? (
+							<FixedSizeList
+								height={400}
+								width="100%"
+								itemSize={100}
+								itemCount={filteredAssets.length}
+								overscanCount={5}
+							>
+								{({ index, style }: ListChildComponentProps) => {
+									const asset = filteredAssets[index]!;
+
+									return (
+										<AssetOption
+											key={asset.address}
+											user={account.address}
+											asset={asset}
+											style={style}
+											onClick={() => {
+												setAsset(asset);
+												setAssetsOpen(false);
+											}}
+										/>
+									);
+								}}
+							</FixedSizeList>
+						) : (
+							<Stack flex={1} alignItems="center" p={2}>
+								<Typography variant="caption">No results found.</Typography>
+							</Stack>
+						)}
+					</List>
+				</DialogContent>
+			</Dialog>
 		</>
 	);
-};
-
-export default App;
+}

@@ -1,0 +1,12 @@
+query getAssets($chainId: Int!) {
+  assets(where: { chainId_in: [$chainId] }) {
+    items {
+      id
+      address
+      symbol
+      name
+      decimals
+      priceUsd
+    }
+  }
+}

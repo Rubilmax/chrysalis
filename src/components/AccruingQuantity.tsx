@@ -2,28 +2,7 @@ import React from "react";
 
 import { yearInSeconds } from "@/yield";
 import Stack from "@mui/material/Stack";
-import { useTheme } from "@mui/material/styles";
-import dynamic from "next/dynamic";
-
-dynamic(
-	() =>
-		// @ts-ignore
-		import("@layflags/rolling-number"),
-	{ ssr: false },
-);
-
-declare global {
-	namespace JSX {
-		interface IntrinsicElements {
-			"layflags-rolling-number": RollingNumberAttributes;
-		}
-
-		interface RollingNumberAttributes
-			extends React.HTMLAttributes<HTMLSpanElement> {
-			name: string;
-		}
-	}
-}
+import Typography from "@mui/material/Typography";
 
 const AccruingQuantity = ({
 	quantity,
@@ -36,8 +15,6 @@ const AccruingQuantity = ({
 	precision?: number;
 	decimals?: number;
 }) => {
-	const theme = useTheme();
-
 	const [accruingQuantity, setAccruingQuantity] = React.useState(quantity);
 	React.useEffect(() => {
 		const delay = 2;
@@ -61,31 +38,13 @@ const AccruingQuantity = ({
 	const accruingDust = accruingDecimals?.slice(precision) ?? "";
 
 	return (
-		<Stack direction="row" justifyContent="left">
-			<layflags-rolling-number
-				style={{
-					// @ts-ignore
-					"--roll-duration": "400ms",
-				}}
-				value={accruingUnit}
-			/>
+		<Stack display="inline-flex" direction="row" justifyContent="left">
+			<span>{accruingUnit}</span>
 			<span>.</span>
-			<layflags-rolling-number
-				style={{
-					// @ts-ignore
-					"--roll-duration": "400ms",
-				}}
-				value={accruingPrecision}
-			/>
-			<layflags-rolling-number
-				style={{
-					// @ts-ignore
-					"--roll-duration": "400ms",
-					color: theme.palette.text.disabled,
-					fontWeight: 100,
-				}}
-				value={accruingDust}
-			/>
+			<span>{accruingPrecision}</span>
+			<Typography variant="inherit" color="text.disabled">
+				{accruingDust}
+			</Typography>
 		</Stack>
 	);
 };

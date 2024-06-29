@@ -6,9 +6,11 @@ import React from "react";
 const Token = ({
 	symbol,
 	size = 32,
+	noSymbol = false,
 }: {
 	symbol: string;
 	size?: number;
+	noSymbol?: boolean;
 }) => {
 	return (
 		<Stack direction="row" alignItems="center">
@@ -16,9 +18,11 @@ const Token = ({
 				src={`https://cdn.morpho.org/assets/logos/${symbol.toLowerCase()}.svg`}
 				sx={{ width: size, height: size, marginRight: "0.3rem" }}
 			/>
-			<Typography variant="body2" fontSize={Math.ceil((size * 2) / 3)}>
-				{symbol}
-			</Typography>
+			{!noSymbol && (
+				<Typography variant="body2" fontSize={Math.ceil((size * 2) / 3)}>
+					{symbol}
+				</Typography>
+			)}
 		</Stack>
 	);
 };

@@ -1,11 +1,8 @@
-import { useLocalStorage } from "@/localStorage";
+"use client";
+
+import { useLocalStorage } from "@uidotdev/usehooks";
 import React from "react";
-import {
-	type Address,
-	type Hash,
-	type TransactionRequest,
-	isAddress,
-} from "viem";
+import { type Address, isAddress } from "viem";
 
 export interface ExecutorDetails {
 	address: Address;
@@ -31,10 +28,9 @@ export const ExecutorContext = React.createContext<{
 export const ExecutorContextProvider = ({
 	children,
 }: { children: React.ReactNode }) => {
-	const [txBatch, setTxBatch] = React.useState<TransactionRequest[]>([]);
-
-	const [selectedExecutorAddress, setSelectedExecutor] =
-		useLocalStorage<Address>("selectedExecutor");
+	const [selectedExecutorAddress, setSelectedExecutor] = useLocalStorage<
+		Address | undefined
+	>("selectedExecutor");
 	const [executors, setExecutors] = useLocalStorage<
 		Record<Address, ExecutorDetails>
 	>("executors", {});

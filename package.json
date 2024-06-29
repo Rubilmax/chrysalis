@@ -38,7 +38,6 @@
     "@emotion/cache": "^11.11.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@layflags/rolling-number": "^1.0.0",
     "@mui/icons-material": "^5.15.20",
     "@mui/material": "^5.15.20",
     "@mui/material-nextjs": "^5.15.11",
@@ -55,6 +54,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.51.5",
     "react-toastify": "^10.0.5",
+    "react-window": "^1.8.10",
     "viem": "^2.14.1",
     "wagmi": "^2.10.2"
   },
@@ -69,6 +69,7 @@
     "@types/node": "^20.14.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/react-window": "^1.8.8",
     "@wagmi/cli": "^2.1.10",
     "encoding": "^0.1.13",
     "husky": "^9.0.11",

@@ -72,15 +72,21 @@ const PositionSummary = ({
 			padding={2}
 		>
 			<Stack>
-				<Typography variant="h6">
+				<Typography variant="h5">
+					${" "}
 					<AccruingQuantity
 						quantity={balance.toFloat(collateralAsset.decimals)}
 						ratePerSecond={positionApy ?? 0}
 						precision={Math.min(collateralAsset.decimals, 3)}
 						decimals={Math.min(collateralAsset.decimals, 9)}
-					/>{" "}
-					<Token symbol={collateralAsset.symbol} size={20} />
+					/>
 				</Typography>
+				<Stack direction="row" alignItems="center">
+					<Typography variant="body1" mr={2}>
+						{balance.format(collateralAsset.decimals, 3)}
+					</Typography>
+					<Token symbol={collateralAsset.symbol} size={20} />
+				</Stack>
 			</Stack>
 			<Tooltip
 				placement="top"

@@ -3,7 +3,8 @@ import { createToast, updateToast } from "@/toast";
 import { getDefaultConfig } from "connectkit";
 import React from "react";
 import type { Id } from "react-toastify";
-import { createConfig } from "wagmi";
+import type { Address } from "viem";
+import { createConfig, useReadContract } from "wagmi";
 import {
 	type Config,
 	type ResolvedRegister,
@@ -77,7 +78,10 @@ export const useTransactionToast = <
 ) => {
 	const toastId = React.useRef<Id>();
 
-	const receipt = useWagmiWaitForTransactionReceipt({ hash: request.data });
+	const receipt = useWagmiWaitForTransactionReceipt({
+		hash: request.data,
+		query: { enabled: !!request.data },
+	});
 
 	// Request
 
@@ -178,6 +182,41 @@ export const useTransactionToast = <
 
 	return receipt;
 };
+
+export const useErc20Balance = (
+	erc20: Address | undefined,
+	account: Address | undefined,
+) =>
+	useReadContract({
+		address: erc20,
+		abi: [
+			// ERC-20
+			{
+				inputs: [
+					{
+						internalType: "address",
+						name: "account",
+						type: "address",
+					},
+				],
+				name: "balanceOf",
+				outputs: [
+					{
+						internalType: "uint256",
+						name: "",
+						type: "uint256",
+					},
+				],
+				stateMutability: "view",
+				type: "function",
+			},
+		],
+		functionName: "balanceOf",
+		args: [account],
+		query: {
+			enabled: !!account,
+		},
+	});
 
 declare module "wagmi" {
 	interface Register {

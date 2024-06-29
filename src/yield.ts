@@ -64,9 +64,6 @@ export const useAssetApys = (address: Address) => {
 
 	const client = usePublicClient();
 	const chainId = useChainId();
-	const { data: blockNumber } = useBlockNumber();
-
-	console.log(blockNumber); // TODO: check if polling (should not)
 
 	React.useEffect(() => {
 		const controller = new AbortController();
@@ -156,7 +153,9 @@ export const useAssetApys = (address: Address) => {
 						let monthlyApy = 0;
 
 						const blockDelay = blockDelays[chainId];
-						if (client != null && blockNumber != null && blockDelay) {
+						if (client != null && blockDelay) {
+							const blockNumber = await client.getBlockNumber();
+
 							const blockNumbers = [
 								blockNumber,
 								blockNumber - BigInt(Math.ceil(dayInSeconds / blockDelay)),
@@ -232,7 +231,7 @@ export const useAssetApys = (address: Address) => {
 		return () => {
 			controller.abort("cleanup");
 		};
-	}, [address, blockNumber, client, chainId]);
+	}, [address, client, chainId]);
 
 	return [{ apy, dailyApy, weeklyApy, monthlyApy }, isFetching] as const;
 };
