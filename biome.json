@@ -10,7 +10,8 @@
 			"style": {
 				"noNonNullAssertion": "off",
 				"noUnusedTemplateLiteral": "off",
-				"useNodejsImportProtocol": "off"
+				"useNodejsImportProtocol": "off",
+				"noParameterAssign": "off"
 			}
 		}
 	}

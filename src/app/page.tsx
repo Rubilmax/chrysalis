@@ -1,6 +1,7 @@
 "use client";
 
 import "evm-maths";
+
 import Token from "@/components/Token";
 import { useGetAssetsQuery } from "@/graphql/GetAssets.query.generated";
 import type { Asset } from "@/graphql/types";
@@ -25,6 +26,7 @@ import { useDebounce, useLocalStorage } from "@uidotdev/usehooks";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 
 import DataLink from "@/components/DataLink";
+import { popularAssets } from "@/constants";
 import Divider from "@mui/material/Divider";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -248,7 +250,7 @@ export default function Home() {
 					</IconButton>
 				</Stack>
 				<DialogContent sx={{ padding: 0 }} dividers>
-					<Stack p={2}>
+					<Stack p={2} paddingBottom={0}>
 						<TextField
 							value={searchField}
 							onChange={(event) => setSearchField(event.target.value)}
@@ -270,6 +272,27 @@ export default function Home() {
 							}}
 							fullWidth
 						/>
+					</Stack>
+					<Stack direction="row" flexWrap="wrap" p={2}>
+						{data?.assets.items
+							?.filter((asset) => popularAssets[chainId]?.has(asset.address))
+							.map((asset) => (
+								<Button
+									key={asset.address}
+									variant="outlined"
+									size="small"
+									color="info"
+									onClick={() => {
+										setSearchField("");
+										setAsset(asset);
+										setAssetsOpen(false);
+									}}
+									sx={{ margin: 0.75 }}
+								>
+									<Token symbol={asset.symbol} size={18} noSymbol />
+									{asset.symbol}
+								</Button>
+							))}
 					</Stack>
 					<Divider />
 					<List

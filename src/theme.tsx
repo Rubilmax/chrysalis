@@ -2,9 +2,11 @@
 
 import { createTheme } from "@mui/material/styles";
 import { Poppins } from "next/font/google";
+import Link, { type LinkProps } from "next/link";
+import React from "react";
 
 const poppins = Poppins({
-	weight: ["300", "400", "500", "700"],
+	weight: ["300", "400", "500", "600", "700"],
 	subsets: ["latin"],
 	display: "swap",
 	preload: true,
@@ -13,6 +15,46 @@ const poppins = Poppins({
 const theme = createTheme({
 	typography: {
 		fontFamily: poppins.style.fontFamily,
+		h1: {
+			fontSize: "3.5rem",
+			fontWeight: 700,
+		},
+		h2: {
+			fontSize: "3rem",
+			fontWeight: 700,
+		},
+		h3: {
+			fontSize: "2.5rem",
+			fontWeight: 600,
+		},
+		h4: {
+			fontSize: "2rem",
+			fontWeight: 600,
+		},
+		h5: {
+			fontSize: "1.75rem",
+			fontWeight: 500,
+		},
+		h6: {
+			fontSize: "1.5rem",
+			fontWeight: 500,
+		},
+		subtitle1: {
+			fontSize: "1rem",
+			fontWeight: 500,
+		},
+		subtitle2: {
+			fontSize: "0.9rem",
+			fontWeight: 500,
+		},
+		body1: {
+			fontSize: "1rem",
+			fontWeight: 400,
+		},
+		body2: {
+			fontSize: "0.85rem",
+			fontWeight: 400,
+		},
 	},
 	palette: {
 		primary: {
@@ -35,6 +77,24 @@ const theme = createTheme({
 		},
 	},
 	components: {
+		MuiLink: {
+			defaultProps: {
+				component: React.forwardRef<HTMLAnchorElement, LinkProps>(
+					(props, ref) => <Link ref={ref} {...props} />,
+				),
+				sx: {
+					color: "inherit",
+					textDecoration: "none",
+				},
+			},
+		},
+		MuiLinearProgress: {
+			styleOverrides: {
+				bar1Determinate: {
+					transition: "transform 150ms ease",
+				},
+			},
+		},
 		MuiChip: {
 			styleOverrides: {
 				root: {

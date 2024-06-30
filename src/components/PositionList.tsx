@@ -1,6 +1,6 @@
 import { useGetUserMarketPositionSummariesQuery } from "@/graphql/GetMarketPositionSummaries.query.generated";
+import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import Link from "next/link";
 import React from "react";
 import type { Address } from "viem";
 import { useChainId } from "wagmi";
@@ -14,15 +14,13 @@ const PositionList = ({ user }: { user: Address }) => {
 	});
 
 	return data?.userByAddress.marketPositions.map((position) => (
-		<Link
+		<Paper
 			key={position.market.uniqueKey}
+			component={Link}
 			href={`/positions/${user}/${position.market.uniqueKey}`}
-			passHref
 		>
-			<Paper component="a">
-				<MarketTitle market={position.market} />
-			</Paper>
-		</Link>
+			<MarketTitle market={position.market} noLink />
+		</Paper>
 	));
 };
 

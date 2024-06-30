@@ -5,7 +5,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { parseUnits } from "viem";
 import AccruingQuantity from "./AccruingQuantity";
-import type { Position } from "./PositionCard";
+import type { Position } from "./PositionPage";
 import Token from "./Token";
 
 const PositionSummary = ({

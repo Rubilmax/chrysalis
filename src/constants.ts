@@ -1,0 +1,14 @@
+import type { Address } from "viem";
+
+export const popularAssets: Record<number, Set<Address>> = {
+	1: new Set([
+		"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", // wstETH
+		"0x9D39A5DE30e57443BfF2A8307A4256c8797A3497", // sUSDe
+		"0x83F20F44975D03b1b09e64809B757c47f942BEeA", // sDAI
+		"0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", // WBTC
+		"0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee", // weETH
+		"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // UNI
+		"0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", // MKR
+	]),
+	8453: new Set(),
+};

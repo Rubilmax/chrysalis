@@ -5,16 +5,16 @@ import React from "react";
 import { useAccount } from "wagmi";
 import PositionList from "./PositionList";
 
-const Sidebar = () => {
+const SideBar = () => {
 	const account = useAccount();
 
 	if (!account.address) return null;
 
 	return (
-		<Stack flex={1}>
+		<Stack flex={1} mt={4}>
 			<PositionList user={account.address} />
 		</Stack>
 	);
 };
 
-export default React.memo(Sidebar);
+export default React.memo(SideBar);

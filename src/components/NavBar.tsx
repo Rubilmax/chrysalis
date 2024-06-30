@@ -8,7 +8,6 @@ import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Alert from "@mui/material/Alert";
 import AppBar from "@mui/material/AppBar";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
@@ -16,6 +15,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -61,26 +61,28 @@ const NavBar = () => {
 	return (
 		<AppBar position="static" elevation={0} color="secondary">
 			<Toolbar>
-				<Image
-					src="/chrysalis.png"
-					alt="Logo"
-					width={40}
-					height={40}
-					style={{ marginRight: "1rem" }}
-				/>
-				<Typography
-					variant="h6"
-					noWrap
-					sx={{
-						display: { xs: "none", md: "flex" },
-						fontFamily: "monospace",
-						fontWeight: 700,
-						letterSpacing: ".2rem",
-					}}
-				>
-					CHRYSALIS
-				</Typography>
-				<Box flexGrow="1" />
+				<Stack direction="row" alignItems="center" component={Link} href="/">
+					<Image
+						src="/chrysalis.png"
+						alt="Logo"
+						width={40}
+						height={40}
+						style={{ marginRight: "1rem" }}
+					/>
+					<Typography
+						variant="h6"
+						noWrap
+						sx={{
+							display: { xs: "none", md: "flex" },
+							fontFamily: "monospace",
+							fontWeight: 700,
+							letterSpacing: ".2rem",
+						}}
+					>
+						CHRYSALIS
+					</Typography>
+				</Stack>
+				<Stack flex={1} />
 				<ConnectKitButton theme="soft" showAvatar showBalance />
 				<IconButton
 					onClick={() => setSettingsOpen(true)}

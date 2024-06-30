@@ -5,7 +5,8 @@ import type { ReactNode } from "react";
 import "evm-maths";
 import "react-toastify/dist/ReactToastify.min.css";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import SideBar from "@/components/SideBar";
+import TopLoader from "@/components/TopLoader";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import { Providers } from "./providers";
@@ -26,12 +27,13 @@ export default function RootLayout(props: { children: ReactNode }) {
 						direction="row"
 						justifyContent="space-between"
 						flexWrap="wrap"
-						mt={4}
+						position="relative"
 					>
-						<Stack flex={3}>
+						<TopLoader />
+						<Stack flex={3} mt={10}>
 							<Container maxWidth="md">{props.children}</Container>
 						</Stack>
-						<Sidebar />
+						<SideBar />
 					</Stack>
 				</Providers>
 			</body>

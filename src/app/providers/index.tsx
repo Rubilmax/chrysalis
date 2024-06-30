@@ -6,14 +6,14 @@ import theme from "@/theme";
 import { config } from "@/wagmi";
 import { ApolloClient, ApolloProvider, HttpLink } from "@apollo/client";
 import { createPersistedQueryLink } from "@apollo/client/link/persisted-queries";
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v14-appRouter";
 import Snackbar from "@mui/material/Snackbar";
 import { ThemeProvider } from "@mui/material/styles";
 import { SafeProvider } from "@safe-global/safe-apps-react-sdk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
 import type { ReactNode } from "react";
-import { Slide, ToastContainer } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import { type State, WagmiProvider } from "wagmi";
 import { ExecutorContextProvider } from "./ExecutorContext";
 

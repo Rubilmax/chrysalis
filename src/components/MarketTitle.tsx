@@ -7,10 +7,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { parseUnits } from "viem";
-import type { Position } from "./PositionCard";
+import type { Position } from "./PositionPage";
 import "evm-maths";
 
-export interface Market extends Pick<Position["market"], "lltv"> {
+export interface Market extends Pick<Position["market"], "uniqueKey" | "lltv"> {
 	collateralAsset: Pick<
 		NonNullable<Position["market"]["collateralAsset"]>,
 		"symbol"
@@ -18,7 +18,10 @@ export interface Market extends Pick<Position["market"], "lltv"> {
 	loanAsset: Pick<Position["market"]["loanAsset"], "symbol">;
 }
 
-const MarketTitle = ({ market }: { market: Market }) => {
+const MarketTitle = ({
+	market,
+	noLink = false,
+}: { market: Market; noLink?: boolean }) => {
 	const maxLeverage = React.useMemo(
 		() =>
 			BigInt.WAD.wadDiv(BigInt.WAD - market.lltv).wadMulDown(
@@ -51,16 +54,18 @@ const MarketTitle = ({ market }: { market: Market }) => {
 					{market.collateralAsset?.symbol ?? "Unknown"} /{" "}
 					{market.loanAsset.symbol}
 				</Typography>
-				<IconButton
-					component="a"
-					href={`https://app.morpho.org/market?id=${market.id}`}
-					target="_blank"
-					rel="noreferrer noopener"
-					size="small"
-					sx={{ marginLeft: 1 }}
-				>
-					<OpenInNewIcon fontSize="small" />
-				</IconButton>
+				{!noLink && (
+					<IconButton
+						component="a"
+						href={`https://app.morpho.org/market?id=${market.uniqueKey}`}
+						target="_blank"
+						rel="noreferrer noopener"
+						size="small"
+						sx={{ marginLeft: 1 }}
+					>
+						<OpenInNewIcon fontSize="small" />
+					</IconButton>
+				)}
 			</Stack>
 			<Chip
 				size="small"
