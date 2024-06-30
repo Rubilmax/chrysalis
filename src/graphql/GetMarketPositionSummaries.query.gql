@@ -1,0 +1,65 @@
+query getUserMarketPositionSummaries($user: String!, $chainId: Int!) {
+  userByAddress(address: $user, chainId: $chainId) {
+    id
+    marketPositions {
+      id
+      borrowShares
+      borrowAssets
+      borrowAssetsUsd
+      collateral
+      collateralUsd
+      market {
+        id
+        uniqueKey
+        lltv
+        oracleAddress
+        irmAddress
+        collateralPrice
+        morphoBlue {
+          id
+          address
+        }
+        loanAsset {
+          id
+          address
+          symbol
+          name
+          decimals
+          priceUsd
+        }
+        collateralAsset {
+          id
+          address
+          symbol
+          name
+          decimals
+          priceUsd
+        }
+        dailyApys {
+          borrowApy
+          netBorrowApy
+        }
+        weeklyApys {
+          borrowApy
+          netBorrowApy
+        }
+        monthlyApys {
+          borrowApy
+          netBorrowApy
+        }
+        state {
+          borrowApy
+          netBorrowApy
+        }
+      }
+      user {
+        id
+        address
+        tag
+        chain {
+          id
+        }
+      }
+    }
+  }
+}

@@ -50,7 +50,12 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 		);
 
 	return (
-		<Stack direction="row" alignItems="center">
+		<Stack
+			display="inline-flex"
+			direction="row"
+			alignItems="center"
+			color={props.color}
+		>
 			<Typography
 				color="inherit"
 				fontSize="inherit"
@@ -62,7 +67,7 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 				}
 				target="_blank"
 				rel="noopener noreferrer"
-				sx={{ verticalAlign: "middle" }}
+				sx={{ ...props.sx, verticalAlign: "middle" }}
 				onClick={(event) => {
 					event.stopPropagation();
 				}}

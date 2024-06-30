@@ -64,6 +64,8 @@ export type Asset = {
 	totalSupply: Scalars["BigInt"]["output"];
 	/** MetaMorpho vault */
 	vault: Maybe<Vault>;
+	/** Asset yield */
+	yield: Maybe<AssetYield>;
 };
 
 /** Asset */
@@ -84,6 +86,13 @@ export type AssetOraclePriceUsdArgs = {
 /** Asset */
 export type AssetSpotPriceEthArgs = {
 	timestamp?: InputMaybe<Scalars["Float"]["input"]>;
+};
+
+/** Asset yield */
+export type AssetYield = {
+	__typename?: "AssetYield";
+	/** Asset yield (APR) */
+	apr: Scalars["Float"]["output"];
 };
 
 export type AssetsFilters = {

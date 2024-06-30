@@ -3,12 +3,12 @@ import type * as Types from "./types";
 import { gql } from "@apollo/client";
 import * as Apollo from "@apollo/client";
 const defaultOptions = {} as const;
-export type GetUserMarketPositionsQueryVariables = Types.Exact<{
-	address: Types.Scalars["String"]["input"];
+export type GetUserMarketPositionSummariesQueryVariables = Types.Exact<{
+	user: Types.Scalars["String"]["input"];
 	chainId: Types.Scalars["Int"]["input"];
 }>;
 
-export type GetUserMarketPositionsQuery = {
+export type GetUserMarketPositionSummariesQuery = {
 	__typename?: "Query";
 	userByAddress: {
 		__typename?: "User";
@@ -84,9 +84,9 @@ export type GetUserMarketPositionsQuery = {
 	};
 };
 
-export const GetUserMarketPositionsDocument = gql`
-    query getUserMarketPositions($address: String!, $chainId: Int!) {
-  userByAddress(address: $address, chainId: $chainId) {
+export const GetUserMarketPositionSummariesDocument = gql`
+    query getUserMarketPositionSummaries($user: String!, $chainId: Int!) {
+  userByAddress(address: $user, chainId: $chainId) {
     id
     marketPositions {
       id
@@ -153,72 +153,75 @@ export const GetUserMarketPositionsDocument = gql`
     `;
 
 /**
- * __useGetUserMarketPositionsQuery__
+ * __useGetUserMarketPositionSummariesQuery__
  *
- * To run a query within a React component, call `useGetUserMarketPositionsQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetUserMarketPositionsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useGetUserMarketPositionSummariesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetUserMarketPositionSummariesQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetUserMarketPositionsQuery({
+ * const { data, loading, error } = useGetUserMarketPositionSummariesQuery({
  *   variables: {
- *      address: // value for 'address'
+ *      user: // value for 'user'
  *      chainId: // value for 'chainId'
  *   },
  * });
  */
-export function useGetUserMarketPositionsQuery(
+export function useGetUserMarketPositionSummariesQuery(
 	baseOptions: Apollo.QueryHookOptions<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
 	> &
 		(
-			| { variables: GetUserMarketPositionsQueryVariables; skip?: boolean }
+			| {
+					variables: GetUserMarketPositionSummariesQueryVariables;
+					skip?: boolean;
+			  }
 			| { skip: boolean }
 		),
 ) {
 	const options = { ...defaultOptions, ...baseOptions };
 	return Apollo.useQuery<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
-	>(GetUserMarketPositionsDocument, options);
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
+	>(GetUserMarketPositionSummariesDocument, options);
 }
-export function useGetUserMarketPositionsLazyQuery(
+export function useGetUserMarketPositionSummariesLazyQuery(
 	baseOptions?: Apollo.LazyQueryHookOptions<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
 	>,
 ) {
 	const options = { ...defaultOptions, ...baseOptions };
 	return Apollo.useLazyQuery<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
-	>(GetUserMarketPositionsDocument, options);
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
+	>(GetUserMarketPositionSummariesDocument, options);
 }
-export function useGetUserMarketPositionsSuspenseQuery(
+export function useGetUserMarketPositionSummariesSuspenseQuery(
 	baseOptions?: Apollo.SuspenseQueryHookOptions<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
 	>,
 ) {
 	const options = { ...defaultOptions, ...baseOptions };
 	return Apollo.useSuspenseQuery<
-		GetUserMarketPositionsQuery,
-		GetUserMarketPositionsQueryVariables
-	>(GetUserMarketPositionsDocument, options);
+		GetUserMarketPositionSummariesQuery,
+		GetUserMarketPositionSummariesQueryVariables
+	>(GetUserMarketPositionSummariesDocument, options);
 }
-export type GetUserMarketPositionsQueryHookResult = ReturnType<
-	typeof useGetUserMarketPositionsQuery
+export type GetUserMarketPositionSummariesQueryHookResult = ReturnType<
+	typeof useGetUserMarketPositionSummariesQuery
 >;
-export type GetUserMarketPositionsLazyQueryHookResult = ReturnType<
-	typeof useGetUserMarketPositionsLazyQuery
+export type GetUserMarketPositionSummariesLazyQueryHookResult = ReturnType<
+	typeof useGetUserMarketPositionSummariesLazyQuery
 >;
-export type GetUserMarketPositionsSuspenseQueryHookResult = ReturnType<
-	typeof useGetUserMarketPositionsSuspenseQuery
+export type GetUserMarketPositionSummariesSuspenseQueryHookResult = ReturnType<
+	typeof useGetUserMarketPositionSummariesSuspenseQuery
 >;
-export type GetUserMarketPositionsQueryResult = Apollo.QueryResult<
-	GetUserMarketPositionsQuery,
-	GetUserMarketPositionsQueryVariables
+export type GetUserMarketPositionSummariesQueryResult = Apollo.QueryResult<
+	GetUserMarketPositionSummariesQuery,
+	GetUserMarketPositionSummariesQueryVariables
 >;

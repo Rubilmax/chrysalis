@@ -1,7 +1,5 @@
-query getUserMarketPositions($address: String!, $chainId: Int!) {
-  userByAddress(address: $address, chainId: $chainId) {
-    id
-    marketPositions {
+query getUserMarketPosition($user: String!, $market: String!, $chainId: Int!) {
+  marketPosition(userAddress: $user, marketUniqueKey: $market, chainId: $chainId) {
       id
       borrowShares
       borrowAssets
@@ -61,5 +59,4 @@ query getUserMarketPositions($address: String!, $chainId: Int!) {
         }
       }
     }
-  }
 }

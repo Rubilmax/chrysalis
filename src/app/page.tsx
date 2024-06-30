@@ -21,7 +21,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useLocalStorage } from "@uidotdev/usehooks";
+import { useDebounce, useLocalStorage } from "@uidotdev/usehooks";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 
 import DataLink from "@/components/DataLink";
@@ -63,7 +63,7 @@ const AssetOption = React.memo(
 			>
 				<ListItemButton onClick={onClick}>
 					<ListItemIcon>
-						<Token symbol={asset.symbol} noSymbol />
+						<Token symbol={asset.symbol} size={38} noSymbol />
 					</ListItemIcon>
 					<ListItemText
 						primary={asset.name}
@@ -77,20 +77,19 @@ const AssetOption = React.memo(
 									fontSize={12}
 									data={asset.address}
 									type="address"
+									ml={2}
+									sx={{ textDecoration: "none" }}
 								/>
 							</>
 						}
 						primaryTypographyProps={{
+							variant: "subtitle1",
 							fontWeight: 500,
 							textOverflow: "ellipsis",
 							overflow: "hidden",
 							whiteSpace: "nowrap",
 						}}
-						secondaryTypographyProps={{
-							component: "div",
-							display: "flex",
-							flexDirection: "column",
-						}}
+						secondaryTypographyProps={{ component: "div" }}
 					/>
 				</ListItemButton>
 			</ListItem>
@@ -142,16 +141,17 @@ export default function Home() {
 	const [assetsOpen, setAssetsOpen] = React.useState(false);
 
 	const [searchField, setSearchField] = React.useState("");
+	const search = useDebounce(searchField, 300);
 
 	const filteredAssets = data?.assets.items?.filter(
 		(asset) =>
-			asset.address.toLowerCase().includes(searchField) ||
-			asset.name.toLowerCase().includes(searchField) ||
-			asset.symbol.toLowerCase().includes(searchField),
+			asset.address.toLowerCase().includes(search.toLowerCase()) ||
+			asset.name.toLowerCase().includes(search.toLowerCase()) ||
+			asset.symbol.toLowerCase().includes(search.toLowerCase()),
 	);
 
 	return (
-		<>
+		<Stack alignItems="center">
 			<Paper>
 				<Stack p={2}>
 					<TextField
@@ -172,11 +172,11 @@ export default function Home() {
 								<Typography variant="caption">
 									{amountError || amount == null
 										? amountError
-										: asset?.priceUsd != null
+										: amount && asset?.priceUsd != null
 											? `$${(asset.priceUsd * amount.toWadFloat()).toFixed(2)}`
 											: ""}
 								</Typography>
-								{asset && balance != null && (
+								{asset && balance && (
 									<Typography
 										variant="caption"
 										color="text.secondary"
@@ -192,25 +192,32 @@ export default function Home() {
 						}
 						FormHelperTextProps={{ component: "div" }}
 						InputProps={{
-							endAdornment: asset ? (
+							endAdornment: (
 								<InputAdornment position="end">
 									{amount !== 0n && (
-										<IconButton edge="end" onClick={() => setAmountField("")}>
+										<IconButton
+											edge="end"
+											onClick={() => setAmountField("")}
+											sx={{ marginRight: 0.5 }}
+										>
 											<CloseIcon />
 										</IconButton>
 									)}
 
-									<Button
-										variant="outlined"
-										color="info"
-										onClick={() => setAssetsOpen(true)}
-									>
-										<Token symbol={asset.symbol} size={20} />
-										<ExpandMoreIcon />
-									</Button>
+									{asset ? (
+										<Button
+											variant="outlined"
+											color="info"
+											onClick={() => setAssetsOpen(true)}
+											sx={{ textTransform: "none" }}
+										>
+											<Token symbol={asset.symbol} size={20} />
+											<ExpandMoreIcon />
+										</Button>
+									) : (
+										<Skeleton height={60} width={120} />
+									)}
 								</InputAdornment>
-							) : (
-								<Skeleton height={50} width={180} />
 							),
 						}}
 						sx={{ minWidth: 350 }}
@@ -261,7 +268,6 @@ export default function Home() {
 									</InputAdornment>
 								),
 							}}
-							autoFocus
 							fullWidth
 						/>
 					</Stack>
@@ -269,7 +275,7 @@ export default function Home() {
 					<List
 						subheader={
 							<ListSubheader>
-								{searchField ? "Search results" : "All tokens"}
+								{search ? "Search results" : "All tokens"}
 							</ListSubheader>
 						}
 					>
@@ -277,7 +283,7 @@ export default function Home() {
 							<FixedSizeList
 								height={400}
 								width="100%"
-								itemSize={100}
+								itemSize={80}
 								itemCount={filteredAssets.length}
 								overscanCount={5}
 							>
@@ -291,6 +297,7 @@ export default function Home() {
 											asset={asset}
 											style={style}
 											onClick={() => {
+												setSearchField("");
 												setAsset(asset);
 												setAssetsOpen(false);
 											}}
@@ -300,12 +307,14 @@ export default function Home() {
 							</FixedSizeList>
 						) : (
 							<Stack flex={1} alignItems="center" p={2}>
-								<Typography variant="caption">No results found.</Typography>
+								<Typography variant="body1" color="text.disabled">
+									No results found.
+								</Typography>
 							</Stack>
 						)}
 					</List>
 				</DialogContent>
 			</Dialog>
-		</>
+		</Stack>
 	);
 }
