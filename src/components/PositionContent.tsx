@@ -21,7 +21,7 @@ import { ExecutorEncoder } from "executooor";
 import React from "react";
 import { maxUint256, parseUnits, zeroAddress } from "viem";
 import { useAccount } from "wagmi";
-import type { Position } from "./PositionPage";
+import type { Position } from "../app/positions/[user]/[market]/page";
 import PositionSummary from "./PositionSummary";
 import Token from "./Token";
 

@@ -1,6 +1,6 @@
 import NavBar from "@/components/NavBar";
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { Metadata, Viewport } from "next";
+import type React from "react";
 
 import "evm-maths";
 import "react-toastify/dist/ReactToastify.min.css";
@@ -11,12 +11,20 @@ import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import { Providers } from "./providers";
 
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+};
+
 export const metadata: Metadata = {
-	title: "Chrysalis",
+	title: {
+		template: "%s | Chrysalis",
+		default: "Chrysalis",
+	},
 	manifest: "/manifest.json",
 };
 
-export default function RootLayout(props: { children: ReactNode }) {
+export default function RootLayout({ children }: React.PropsWithChildren) {
 	return (
 		<html lang="en">
 			<body>
@@ -31,7 +39,7 @@ export default function RootLayout(props: { children: ReactNode }) {
 					>
 						<TopLoader />
 						<Stack flex={3} mt={10}>
-							<Container maxWidth="md">{props.children}</Container>
+							<Container maxWidth="md">{children}</Container>
 						</Stack>
 						<SideBar />
 					</Stack>

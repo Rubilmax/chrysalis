@@ -4,7 +4,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import React from "react";
 
 const speed = 150;
-const trickleSpeed = 800;
+const trickleSpeed = 500;
 
 const isDifferentAnchorOfSameUrl = (currentUrl: URL, newUrl: URL) => {
 	// Compare hostname, pathname, and search parameters
@@ -42,15 +42,25 @@ const TopLoader = () => {
 			});
 		};
 
-		let interval: NodeJS.Timeout;
+		let timeout: NodeJS.Timeout;
 		const start = () => {
 			setProgress(8);
 
-			interval = setInterval(() => inc(), trickleSpeed);
+			const trickle = () => {
+				timeout = setTimeout(
+					() => {
+						inc();
+						trickle();
+					},
+					trickleSpeed * (Math.random() + 0.5),
+				);
+			};
+
+			trickle();
 		};
 
 		const done = () => {
-			clearInterval(interval);
+			clearTimeout(timeout);
 
 			setTimeout(() => inc(30 + 50 * Math.random()), speed);
 

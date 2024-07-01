@@ -30,7 +30,7 @@ const apolloClient = new ApolloClient({
 export const Providers = ({
 	children,
 	initialState,
-}: { children: ReactNode; initialState?: State }) => {
+}: React.PropsWithChildren<{ initialState?: State }>) => {
 	return (
 		<WagmiProvider config={config} initialState={initialState}>
 			<QueryClientProvider client={queryClient}>

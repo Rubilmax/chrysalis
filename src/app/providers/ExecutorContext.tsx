@@ -27,7 +27,7 @@ export const ExecutorContext = React.createContext<{
 
 export const ExecutorContextProvider = ({
 	children,
-}: { children: React.ReactNode }) => {
+}: React.PropsWithChildren) => {
 	const [selectedExecutorAddress, setSelectedExecutor] =
 		useLocalStorage<Address>("selectedExecutor");
 	const [executors, setExecutors] = useLocalStorage<

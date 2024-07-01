@@ -3,11 +3,6 @@ const nextConfig = {
 	images: { unoptimized: true },
 };
 
-if (process.env.NODE_ENV === "production") {
-	nextConfig.basePath = "/chrysalis";
-	// nextConfig.output = "export";
-}
-
 if (process.env.NODE_ENV === "development") {
 	nextConfig.headers = () => [
 		{

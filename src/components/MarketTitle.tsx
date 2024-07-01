@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { parseUnits } from "viem";
-import type { Position } from "./PositionPage";
+import type { Position } from "../app/positions/[user]/[market]/page";
 import "evm-maths";
 
 export interface Market extends Pick<Position["market"], "uniqueKey" | "lltv"> {

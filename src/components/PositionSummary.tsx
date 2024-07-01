@@ -4,8 +4,8 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 import { parseUnits } from "viem";
+import type { Position } from "../app/positions/[user]/[market]/page";
 import AccruingQuantity from "./AccruingQuantity";
-import type { Position } from "./PositionPage";
 import Token from "./Token";
 
 const PositionSummary = ({
