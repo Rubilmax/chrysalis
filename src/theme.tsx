@@ -82,7 +82,9 @@ const theme = createTheme({
 				component: React.forwardRef<HTMLAnchorElement, LinkProps>(
 					(props, ref) => <Link ref={ref} {...props} />,
 				),
-				sx: {
+			},
+			styleOverrides: {
+				root: {
 					color: "inherit",
 					textDecoration: "none",
 				},

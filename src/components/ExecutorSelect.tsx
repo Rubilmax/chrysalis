@@ -179,12 +179,10 @@ const ExecutorSelect = ({ disabled = false }: { disabled?: boolean }) => {
 					placeholder="0x{...} or {...}.eth"
 					error={error}
 					helperText={
-						<Stack direction="row" justifyContent="space-between">
-							{(parsedAddress || parsedEns) && (
-								<Typography variant="caption">
-									{parsedAddress ? ens : address}
-								</Typography>
-							)}
+						<>
+							<Typography variant="caption" sx={{ flex: 1 }}>
+								{parsedAddress ? ens : parsedEns ? address : ""}
+							</Typography>
 							{executor && (
 								<Tooltip
 									title={
@@ -198,6 +196,7 @@ const ExecutorSelect = ({ disabled = false }: { disabled?: boolean }) => {
 										variant="caption"
 										sx={({ palette }) => ({
 											color: warning ? palette.warning.main : "inherit",
+											justifySelf: "flex-end",
 										})}
 									>
 										{warning && (
@@ -207,9 +206,12 @@ const ExecutorSelect = ({ disabled = false }: { disabled?: boolean }) => {
 									</Typography>
 								</Tooltip>
 							)}
-						</Stack>
+						</>
 					}
-					FormHelperTextProps={{ component: "div" }}
+					FormHelperTextProps={{
+						component: "div",
+						sx: { display: "flex" },
+					}}
 					size="small"
 					variant="outlined"
 					label="Executor contract"

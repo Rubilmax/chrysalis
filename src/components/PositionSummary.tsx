@@ -112,12 +112,9 @@ const PositionSummary = ({
 					</Stack>
 				}
 			>
-				<Stack alignItems="center" ml={2}>
-					<Typography variant="caption">now</Typography>
-					<Typography variant="h6" mt={-1}>
-						{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-					</Typography>
-				</Stack>
+				<Typography variant="h6">
+					{positionApy ? (positionApy * 100).toFixed(2) : 0}%
+				</Typography>
 			</Tooltip>
 		</Stack>
 	);

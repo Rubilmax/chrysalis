@@ -11,7 +11,7 @@ const SideBar = () => {
 	if (!account.address) return null;
 
 	return (
-		<Stack flex={1} mt={4}>
+		<Stack flex={1} p={4}>
 			<PositionList user={account.address} />
 		</Stack>
 	);

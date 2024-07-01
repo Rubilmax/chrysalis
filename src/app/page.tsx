@@ -22,11 +22,12 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useDebounce, useLocalStorage } from "@uidotdev/usehooks";
+import { useDebounce } from "@uidotdev/usehooks";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 
 import DataLink from "@/components/DataLink";
 import { popularAssets } from "@/constants";
+import { useLocalStorage } from "@/localStorage";
 import Divider from "@mui/material/Divider";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -110,18 +111,8 @@ export default function Home() {
 	});
 
 	const [asset, setAsset] = useLocalStorage<
-		Pick<Asset, "address" | "symbol" | "decimals" | "priceUsd"> | undefined
-	>("selectedAsset");
-	React.useEffect(() => {
-		const firstAsset = data?.assets.items?.[0];
-		if (!firstAsset) return;
-
-		setAsset((asset) => {
-			if (asset == null) return firstAsset;
-
-			return asset;
-		});
-	}, [data, setAsset]);
+		Pick<Asset, "address" | "symbol" | "decimals" | "priceUsd">
+	>("selectedAsset", data?.assets.items?.[0]);
 
 	const { data: balance } = useErc20Balance(asset?.address, account.address);
 

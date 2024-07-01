@@ -212,7 +212,7 @@ export const useErc20Balance = (
 			},
 		],
 		functionName: "balanceOf",
-		args: [account],
+		args: [account!],
 		query: {
 			enabled: !!account,
 		},
