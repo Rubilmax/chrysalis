@@ -58,10 +58,10 @@ const theme = createTheme({
 	},
 	palette: {
 		primary: {
-			main: "#06573a",
+			main: "#2470FF",
 		},
 		secondary: {
-			main: "#f3e2c8",
+			main: "#5792FF",
 		},
 		success: {
 			main: "#0a7952",
@@ -77,6 +77,14 @@ const theme = createTheme({
 		},
 	},
 	components: {
+		MuiAppBar: {
+			styleOverrides: {
+				root: {
+					padding: 10,
+					zIndex: 200,
+				},
+			},
+		},
 		MuiLink: {
 			defaultProps: {
 				component: React.forwardRef<HTMLAnchorElement, LinkProps>(

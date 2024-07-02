@@ -145,7 +145,12 @@ export default function Home() {
 
 	return (
 		<Stack alignItems="center">
-			<Paper>
+			<Paper
+				sx={{
+					background: "rgba(255, 255, 255, 0.8)",
+					backdropFilter: "blur(10px)",
+				}}
+			>
 				<Stack p={2}>
 					<TextField
 						value={amountField}

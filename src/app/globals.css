@@ -26,8 +26,55 @@ body {
 
 @media (prefers-color-scheme: light) {
   :root {
-    background-color: #f8f8f8;
+    background-color: #fff;
     color: #181818;
+  }
+}
+
+@keyframes background-fade-in-out {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+
+  10% {
+    opacity: 1;
+    transform: rotate(1deg);
+  }
+
+  20% {
+    opacity: 0;
+    transform: rotate(2deg);
+  }
+
+  40% {
+    opacity: 0;
+    transform: rotate(90deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: rotate(91deg);
+  }
+
+  60% {
+    opacity: 0;
+    transform: rotate(92deg);
+  }
+
+  80% {
+    opacity: 0;
+    transform: rotate(180deg);
+  }
+
+  90% {
+    opacity: 1;
+    transform: rotate(181deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotate(182deg);
   }
 }
 
