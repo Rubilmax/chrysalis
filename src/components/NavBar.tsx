@@ -2,6 +2,7 @@
 
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import { executorDeployData } from "@/executor";
+import { useLocalStorage } from "@/localStorage";
 import { useDeployContract } from "@/wagmi";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardDoubleArrowRightIcon from "@mui/icons-material/KeyboardDoubleArrowRight";
@@ -21,7 +22,6 @@ import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
 import Slide from "@mui/material/Slide";
 import Stack from "@mui/material/Stack";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { ConnectKitButton } from "connectkit";
@@ -36,12 +36,12 @@ const NavBar = () => {
 
 	const { addExecutor } = React.useContext(ExecutorContext);
 
-	const [drawerOpen, setDrawerOpen] = React.useState(false);
+	const [drawerOpen, setDrawerOpen] = useLocalStorage("drawer", false);
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 
 	React.useEffect(() => {
-		setDrawerOpen(!!account.address);
-	}, [account.address]);
+		if (!account.address) setDrawerOpen(false);
+	}, [account.address, setDrawerOpen]);
 
 	const {
 		request: { deployContract, isPending },

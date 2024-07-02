@@ -39,12 +39,12 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
 					{backgrounds.map((bg) => (
 						<Stack
 							key={bg.background}
-							position="fixed"
+							position="absolute"
 							top={0}
 							left={0}
 							height="100vh"
 							width="100vw"
-							zIndex={0}
+							zIndex={-1}
 							sx={bg}
 						/>
 					))}
@@ -54,7 +54,6 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
 						justifyContent="space-between"
 						flexWrap="wrap"
 						position="relative"
-						zIndex={1}
 					>
 						<TopLoader />
 						<Stack flex={3} mt={10}>

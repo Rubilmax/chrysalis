@@ -81,7 +81,6 @@ const theme = createTheme({
 			styleOverrides: {
 				root: {
 					padding: 10,
-					zIndex: 200,
 				},
 			},
 		},
