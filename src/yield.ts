@@ -1,6 +1,7 @@
+import { cbEthAbi } from "@/abis";
 import React from "react";
-import type { Address } from "viem";
-import { useBlockNumber, useChainId, usePublicClient } from "wagmi";
+import { type Address, erc20Abi, erc4626Abi } from "viem";
+import { useChainId, usePublicClient } from "wagmi";
 import { base, mainnet } from "wagmi/chains";
 import { parseNumber } from "./format";
 import { isDefined } from "./utils";
@@ -18,48 +19,24 @@ export const blockDelays: Record<number, number> = {
 	[base.id]: 2,
 };
 
-const yieldAbi = [
-	// ERC-4626
-	{
-		inputs: [
-			{
-				internalType: "uint256",
-				name: "shares",
-				type: "uint256",
-			},
-		],
-		name: "convertToAssets",
-		outputs: [
-			{
-				internalType: "uint256",
-				name: "",
-				type: "uint256",
-			},
-		],
-		stateMutability: "view",
-		type: "function",
-	},
-	// cbETH
-	{
-		inputs: [],
-		name: "exchangeRate",
-		outputs: [
-			{
-				internalType: "uint256",
-				name: "_exchangeRate",
-				type: "uint256",
-			},
-		],
-		stateMutability: "view",
-		type: "function",
-	},
-] as const;
+const yieldAbi = [...erc4626Abi, ...cbEthAbi] as const;
 
-export const useAssetApys = (address: Address) => {
-	const [apy, setApy] = React.useState<number>();
-	const [dailyApy, setDailyApy] = React.useState<number>();
-	const [weeklyApy, setWeeklyApy] = React.useState<number>();
-	const [monthlyApy, setMonthlyApy] = React.useState<number>();
+export interface AssetYields {
+	apy: number;
+	dailyApy: number;
+	weeklyApy: number;
+	monthlyApy: number;
+	underlying?: {
+		address: Address;
+		symbol?: string;
+		name?: string;
+		decimals?: number;
+		exchangeRate: number;
+	};
+}
+
+export const useAssetYields = (address: Address) => {
+	const [yields, setYields] = React.useState<AssetYields>();
 	const [isFetching, startTransition] = React.useTransition();
 
 	const client = usePublicClient();
@@ -147,10 +124,12 @@ export const useAssetApys = (address: Address) => {
 					// 	address = "0xBe9895146f7AF43049ca1c1AE358B0541Ea49704";
 					// }
 					default: {
-						let apy = 0;
-						let dailyApy = 0;
-						let weeklyApy = 0;
-						let monthlyApy = 0;
+						const yields: AssetYields = {
+							apy: 0,
+							dailyApy: 0,
+							weeklyApy: 0,
+							monthlyApy: 0,
+						};
 
 						const blockDelay = blockDelays[chainId];
 						if (client != null && blockDelay) {
@@ -163,27 +142,40 @@ export const useAssetApys = (address: Address) => {
 								blockNumber - BigInt(Math.ceil(monthInSeconds / blockDelay)),
 							];
 
-							const [now, dayAgo, weekAgo, monthAgo] = await Promise.all(
-								blockNumbers.map(async (blockNumber) => [
-									await client
+							const [asset, now, dayAgo, weekAgo, monthAgo] = await Promise.all(
+								[
+									client
 										.readContract({
 											address,
 											abi: yieldAbi,
-											functionName: "convertToAssets",
-											args: [BigInt.WAD],
+											functionName: "asset",
 											blockNumber,
 										})
 										.catch(() => undefined),
-									await client
-										.readContract({
-											address,
-											abi: yieldAbi,
-											functionName: "exchangeRate",
-											blockNumber,
-										})
-										.catch(() => undefined),
-									0n, // Fallback to zero.
-								]),
+									...blockNumbers.map(
+										async (blockNumber) =>
+											[
+												await client
+													.readContract({
+														address,
+														abi: yieldAbi,
+														functionName: "convertToAssets",
+														args: [BigInt.WAD],
+														blockNumber,
+													})
+													.catch(() => undefined),
+												await client
+													.readContract({
+														address,
+														abi: yieldAbi,
+														functionName: "exchangeRate",
+														blockNumber,
+													})
+													.catch(() => undefined),
+												0n, // Fallback to zero.
+											] as const,
+									),
+								],
 							);
 
 							// All of these are guaranteed to be defined thanks to the "0n" fallback value.
@@ -192,39 +184,70 @@ export const useAssetApys = (address: Address) => {
 							const value1WAgo = weekAgo!.find(isDefined)!;
 							const value1MAgo = monthAgo!.find(isDefined)!;
 
+							if (asset) {
+								const [symbol, name, decimals] = await Promise.all([
+									client
+										.readContract({
+											address: asset,
+											abi: erc20Abi,
+											functionName: "symbol",
+											blockNumber,
+										})
+										.catch(() => undefined),
+									client
+										.readContract({
+											address: asset,
+											abi: erc20Abi,
+											functionName: "name",
+											blockNumber,
+										})
+										.catch(() => undefined),
+									client
+										.readContract({
+											address: asset,
+											abi: erc20Abi,
+											functionName: "decimals",
+											blockNumber,
+										})
+										.catch(() => undefined),
+								]);
+
+								yields.underlying = {
+									address: asset,
+									symbol,
+									name,
+									decimals,
+									exchangeRate: value.toWadFloat(),
+								};
+							}
+
 							if (value1DAgo > 0n)
-								apy = dailyApy =
-									(1 +
-										(value - value1DAgo).wadDiv(value1DAgo).toWadFloat() /
-											dayInSeconds) **
-										yearInSeconds -
+								yields.apy = yields.dailyApy =
+									(1 + (value - value1DAgo).wadDiv(value1DAgo).toWadFloat()) **
+										(yearInSeconds / dayInSeconds) -
 									1;
 							if (value1WAgo > 0n)
-								weeklyApy =
-									(1 +
-										(value - value1WAgo).wadDiv(value1WAgo).toWadFloat() /
-											weekInSeconds) **
-										yearInSeconds -
+								yields.weeklyApy =
+									(1 + (value - value1WAgo).wadDiv(value1WAgo).toWadFloat()) **
+										(yearInSeconds / weekInSeconds) -
 									1;
 							if (value1MAgo > 0n)
-								monthlyApy =
-									(1 +
-										(value - value1MAgo).wadDiv(value1MAgo).toWadFloat() /
-											monthInSeconds) **
-										yearInSeconds -
+								yields.monthlyApy =
+									(1 + (value - value1MAgo).wadDiv(value1MAgo).toWadFloat()) **
+										(yearInSeconds / monthInSeconds) -
 									1;
 						}
 
-						return { apy, dailyApy, weeklyApy, monthlyApy };
+						return yields;
 					}
 				}
-			})().then(
-				({ apy, dailyApy = apy, weeklyApy = apy, monthlyApy = apy }) => {
-					setApy(apy);
-					setDailyApy(dailyApy);
-					setWeeklyApy(weeklyApy);
-					setMonthlyApy(monthlyApy);
-				},
+			})().then((yields) =>
+				setYields({
+					dailyApy: yields.apy,
+					weeklyApy: yields.apy,
+					monthlyApy: yields.apy,
+					...yields,
+				}),
 			);
 		});
 
@@ -233,7 +256,7 @@ export const useAssetApys = (address: Address) => {
 		};
 	}, [address, client, chainId]);
 
-	return [{ apy, dailyApy, weeklyApy, monthlyApy }, isFetching] as const;
+	return [yields, isFetching] as const;
 };
 
 export const usePositionApy = (

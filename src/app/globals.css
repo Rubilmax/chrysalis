@@ -22,6 +22,9 @@
 
 body {
   margin: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 @media (prefers-color-scheme: light) {
@@ -33,18 +36,18 @@ body {
 
 @keyframes background-fade-in-out {
   0% {
-    opacity: 0.1;
+    opacity: 0;
     transform: none;
   }
 
   10% {
     opacity: 0.35;
-    transform: rotate(1deg);
+    transform: rotate(5deg);
   }
 
   20% {
     opacity: 0.1;
-    transform: rotate(2deg);
+    transform: rotate(10deg);
   }
 
   40% {
@@ -54,12 +57,12 @@ body {
 
   50% {
     opacity: 0.35;
-    transform: rotate(91deg);
+    transform: rotate(95deg);
   }
 
   60% {
     opacity: 0.1;
-    transform: rotate(92deg);
+    transform: rotate(100deg);
   }
 
   80% {
@@ -69,12 +72,12 @@ body {
 
   90% {
     opacity: 0.35;
-    transform: rotate(181deg);
+    transform: rotate(185deg);
   }
 
   100% {
-    opacity: 0.1;
-    transform: rotate(182deg);
+    opacity: 0;
+    transform: rotate(190deg);
   }
 }
 

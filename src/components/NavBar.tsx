@@ -86,7 +86,7 @@ const NavBar = () => {
 					</IconButton>
 				)}
 
-				<Slide in={drawerOpen} timeout={180} direction="left">
+				<Slide in={drawerOpen} timeout={180} direction="left" mountOnEnter>
 					<Paper
 						elevation={1}
 						sx={{
@@ -108,7 +108,7 @@ const NavBar = () => {
 							<Stack
 								direction="row"
 								alignItems="center"
-								spacing={1}
+								spacing={0.5}
 								marginLeft={2}
 							>
 								<IconButton onClick={() => setSettingsOpen(true)}>
@@ -122,7 +122,7 @@ const NavBar = () => {
 						{account.address && (
 							<Stack padding={2} marginTop={2}>
 								<Typography variant="subtitle1" paragraph gutterBottom>
-									My Positions
+									Positions
 								</Typography>
 								<PositionList user={account.address} />
 							</Stack>

@@ -84,6 +84,18 @@ const theme = createTheme({
 				},
 			},
 		},
+		MuiPaper: {
+			variants: [
+				{
+					props: {
+						variant: "transparent",
+					},
+					style: {
+						background: "rgba(255, 255, 255, 0.98)",
+					},
+				},
+			],
+		},
 		MuiLink: {
 			defaultProps: {
 				component: React.forwardRef<HTMLAnchorElement, LinkProps>(
@@ -115,6 +127,30 @@ const theme = createTheme({
 			styleOverrides: {
 				root: {
 					verticalAlign: "middle",
+				},
+			},
+		},
+		MuiTextField: {
+			variants: [
+				{
+					props: { size: "large" },
+					style: {
+						"& label": {
+							fontSize: "1.1rem",
+						},
+						"& input": {
+							height: "2em",
+							fontSize: "2rem",
+							textOverflow: "ellipsis",
+						},
+					},
+				},
+			],
+		},
+		MuiFilledInput: {
+			styleOverrides: {
+				root: {
+					backgroundColor: "#F9F9F9",
 				},
 			},
 		},
@@ -157,5 +193,17 @@ const theme = createTheme({
 		},
 	},
 });
+
+declare module "@mui/material/Paper" {
+	interface PaperPropsVariantOverrides {
+		transparent: true;
+	}
+}
+
+declare module "@mui/material/TextField" {
+	interface TextFieldPropsSizeOverrides {
+		large: true;
+	}
+}
 
 export default theme;

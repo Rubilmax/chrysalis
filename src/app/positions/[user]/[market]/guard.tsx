@@ -29,7 +29,7 @@ const Page = React.memo(({ user, market }: { user: Address; market: Hex }) => {
 
 	return (
 		data?.marketPosition && (
-			<Paper>
+			<Paper variant="transparent">
 				<MarketTitle market={data.marketPosition.market} />
 				<Divider />
 				{data.marketPosition.market.collateralAsset &&

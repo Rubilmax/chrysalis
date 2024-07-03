@@ -1,4 +1,4 @@
-import { usePositionApy } from "@/yield";
+import { type AssetYields, usePositionApy } from "@/yield";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -15,7 +15,7 @@ const PositionSummary = ({
 		market: { loanAsset, collateralAsset, collateralPrice, ...market },
 	},
 	positionApy,
-	collateralApys,
+	collateralYields,
 }: {
 	position: Omit<Position, "market"> & {
 		market: Omit<Position["market"], "collateralAsset" | "collateralPrice"> & {
@@ -24,12 +24,7 @@ const PositionSummary = ({
 		};
 	};
 	positionApy?: number;
-	collateralApys?: {
-		apy?: number;
-		dailyApy?: number;
-		weeklyApy?: number;
-		monthlyApy?: number;
-	};
+	collateralYields?: AssetYields;
 }) => {
 	const collateralValue = React.useMemo(
 		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
@@ -48,19 +43,19 @@ const PositionSummary = ({
 	const dailyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApys?.dailyApy,
+		collateralYields?.dailyApy,
 		market.dailyApys?.borrowApy,
 	);
 	const weeklyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApys?.weeklyApy,
+		collateralYields?.weeklyApy,
 		market.weeklyApys?.borrowApy,
 	);
 	const monthlyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralApys?.monthlyApy,
+		collateralYields?.monthlyApy,
 		market.monthlyApys?.borrowApy,
 	);
 
@@ -73,13 +68,16 @@ const PositionSummary = ({
 		>
 			<Stack>
 				<Typography variant="h5">
-					${" "}
+					{!collateralYields?.underlying && "$ "}
 					<AccruingQuantity
 						quantity={balance.toFloat(collateralAsset.decimals)}
 						ratePerSecond={positionApy ?? 0}
 						precision={Math.min(collateralAsset.decimals, 3)}
 						decimals={Math.min(collateralAsset.decimals, 9)}
 					/>
+					{collateralYields?.underlying?.symbol && (
+						<Token symbol={collateralYields.underlying.symbol} size={20} />
+					)}
 				</Typography>
 				<Stack direction="row" alignItems="center">
 					<Typography variant="body1" mr={2}>

@@ -6,16 +6,20 @@ BigInt.prototype.toJSON = function () {
 };
 
 export const getItem = (key: string) => {
-	try {
-		return localStorage.getItem(key);
-	} catch (error) {
-		console.error(error);
+	if (typeof window !== "undefined") {
+		try {
+			return localStorage.getItem(key);
+		} catch (error) {
+			console.error(error);
+		}
 	}
 
 	return null;
 };
 
 export const setItem = <T>(key: string, value: T) => {
+	if (typeof window === "undefined") return;
+
 	if (value == null) return removeItem(key);
 
 	const newValue = JSON.stringify(value);
@@ -29,6 +33,8 @@ export const setItem = <T>(key: string, value: T) => {
 };
 
 export const removeItem = (key: string) => {
+	if (typeof window === "undefined") return;
+
 	try {
 		localStorage.removeItem(key);
 		dispatchStorageEvent(key, null); // Natively dispatched only to other browsing contexts.

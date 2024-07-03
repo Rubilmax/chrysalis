@@ -12,7 +12,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { SafeProvider } from "@safe-global/safe-apps-react-sdk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
-import type { ReactNode } from "react";
+import type React from "react";
 import { ToastContainer } from "react-toastify";
 import { type State, WagmiProvider } from "wagmi";
 import { ExecutorContextProvider } from "./ExecutorContext";

@@ -3,7 +3,7 @@ import { createToast, updateToast } from "@/toast";
 import { getDefaultConfig } from "connectkit";
 import React from "react";
 import type { Id } from "react-toastify";
-import type { Address } from "viem";
+import { type Address, erc20Abi } from "viem";
 import { createConfig, useReadContract } from "wagmi";
 import {
 	type Config,
@@ -189,28 +189,7 @@ export const useErc20Balance = (
 ) =>
 	useReadContract({
 		address: erc20,
-		abi: [
-			// ERC-20
-			{
-				inputs: [
-					{
-						internalType: "address",
-						name: "account",
-						type: "address",
-					},
-				],
-				name: "balanceOf",
-				outputs: [
-					{
-						internalType: "uint256",
-						name: "",
-						type: "uint256",
-					},
-				],
-				stateMutability: "view",
-				type: "function",
-			},
-		],
+		abi: erc20Abi,
 		functionName: "balanceOf",
 		args: [account!],
 		query: {

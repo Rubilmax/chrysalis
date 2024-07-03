@@ -17,8 +17,8 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
 	title: {
-		template: "%s | Chrysalis",
-		default: "Chrysalis",
+		template: "%s | Ninja Blue",
+		default: "Ninja Blue | Leverage",
 	},
 	manifest: "/manifest.json",
 };

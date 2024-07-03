@@ -3,7 +3,10 @@
 import "evm-maths";
 
 import Token from "@/components/Token";
-import { useGetAssetsQuery } from "@/graphql/GetAssets.query.generated";
+import {
+	type GetAssetsQuery,
+	useGetAssetsQuery,
+} from "@/graphql/GetAssets.query.generated";
 import type { Asset } from "@/graphql/types";
 import { useErc20Balance } from "@/wagmi";
 import CloseIcon from "@mui/icons-material/Close";
@@ -104,15 +107,24 @@ export default function Home() {
 	const account = useAccount();
 	const chainId = useChainId();
 
+	const [assets, setAssets] =
+		useLocalStorage<GetAssetsQuery["assets"]>("assets");
+
 	const { data, loading, error } = useGetAssetsQuery({
 		variables: {
 			chainId,
 		},
+		fetchPolicy: "cache-first",
 	});
+
+	// Cache assets to local storage.
+	React.useEffect(() => {
+		if (data?.assets) setAssets(data.assets);
+	}, [data?.assets, setAssets]);
 
 	const [asset, setAsset] = useLocalStorage<
 		Pick<Asset, "address" | "symbol" | "decimals" | "priceUsd">
-	>("selectedAsset", data?.assets.items?.[0]);
+	>("selectedAsset", assets?.items?.[0]);
 
 	const { data: balance } = useErc20Balance(asset?.address, account.address);
 
@@ -136,7 +148,7 @@ export default function Home() {
 	const [searchField, setSearchField] = React.useState("");
 	const search = useDebounce(searchField, 300);
 
-	const filteredAssets = data?.assets.items?.filter(
+	const filteredAssets = assets?.items?.filter(
 		(asset) =>
 			asset.address.toLowerCase().includes(search.toLowerCase()) ||
 			asset.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -145,12 +157,7 @@ export default function Home() {
 
 	return (
 		<Stack alignItems="center">
-			<Paper
-				sx={{
-					background: "rgba(255, 255, 255, 0.8)",
-					backdropFilter: "blur(10px)",
-				}}
-			>
+			<Paper variant="transparent">
 				<Stack p={2}>
 					<TextField
 						value={amountField}
@@ -194,6 +201,7 @@ export default function Home() {
 								<InputAdornment position="end">
 									{amount !== 0n && (
 										<IconButton
+											size="small"
 											edge="end"
 											onClick={() => setAmountField("")}
 											sx={{ marginRight: 0.5 }}
@@ -204,13 +212,14 @@ export default function Home() {
 
 									{asset ? (
 										<Button
-											variant="outlined"
+											variant="text"
 											color="info"
+											size="large"
 											onClick={() => setAssetsOpen(true)}
 											sx={{ textTransform: "none" }}
 										>
-											<Token symbol={asset.symbol} size={20} />
-											<ExpandMoreIcon />
+											<Token symbol={asset.symbol} size={24} fontWeight={500} />
+											<ExpandMoreIcon color="action" sx={{ marginLeft: 0.5 }} />
 										</Button>
 									) : (
 										<Skeleton height={60} width={120} />
@@ -218,9 +227,12 @@ export default function Home() {
 								</InputAdornment>
 							),
 						}}
-						sx={{ minWidth: 350 }}
-						variant="outlined"
-						label="Deposit"
+						sx={{ maxWidth: 450 }}
+						size="large"
+						variant="filled"
+						label="Leverage"
+						placeholder="0"
+						InputLabelProps={{ shrink: true }}
 					/>
 				</Stack>
 			</Paper>
@@ -266,11 +278,12 @@ export default function Home() {
 									</InputAdornment>
 								),
 							}}
+							size="small"
 							fullWidth
 						/>
 					</Stack>
-					<Stack direction="row" flexWrap="wrap" p={2}>
-						{data?.assets.items
+					<Stack direction="row" flexWrap="wrap" gap={1.5} p={2}>
+						{assets?.items
 							?.filter((asset) => popularAssets[chainId]?.has(asset.address))
 							.map((asset) => (
 								<Button
@@ -283,9 +296,9 @@ export default function Home() {
 										setAsset(asset);
 										setAssetsOpen(false);
 									}}
-									sx={{ margin: 0.75 }}
+									sx={{ textTransform: "none" }}
 								>
-									<Token symbol={asset.symbol} size={18} noSymbol />
+									<Token symbol={asset.symbol} size={20} noSymbol />
 									{asset.symbol}
 								</Button>
 							))}
