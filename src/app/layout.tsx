@@ -23,12 +23,6 @@ export const metadata: Metadata = {
 	manifest: "/manifest.json",
 };
 
-const backgrounds = new Array(10).fill(undefined).map((_, i) => ({
-	opacity: 0,
-	background: `url(/backgrounds/${i + 1}.png) no-repeat 50% 50%`,
-	animation: `background-fade-in-out 40s linear ${(i + 1) * 1.5}s forwards infinite`,
-}));
-
 export default function RootLayout({ children }: React.PropsWithChildren) {
 	return (
 		<html lang="en">
@@ -36,18 +30,20 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
 				<Providers>
 					<NavBar />
 
-					{backgrounds.map((bg) => (
-						<Stack
-							key={bg.background}
-							position="absolute"
-							top={0}
-							left={0}
-							height="100vh"
-							width="100vw"
-							zIndex={-1}
-							sx={bg}
-						/>
-					))}
+					<video
+						src="/abstract-shape.webm"
+						height="80%"
+						style={{
+							position: "fixed",
+							top: "50%",
+							left: "50%",
+							transform: "translate(-50%, -50%)",
+							opacity: 0.8,
+						}}
+						autoPlay
+						muted
+						loop
+					/>
 
 					<Stack
 						direction="row"

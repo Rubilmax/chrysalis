@@ -60,25 +60,26 @@ const PositionSummary = ({
 	);
 
 	return (
-		<Stack
-			direction="row"
-			justifyContent="space-between"
-			alignItems="center"
-			padding={2}
-		>
-			<Stack>
-				<Typography variant="h5">
-					{!collateralYields?.underlying && "$ "}
-					<AccruingQuantity
-						quantity={balance.toFloat(collateralAsset.decimals)}
-						ratePerSecond={positionApy ?? 0}
-						precision={Math.min(collateralAsset.decimals, 3)}
-						decimals={Math.min(collateralAsset.decimals, 9)}
-					/>
+		<Stack direction="row" justifyContent="space-between" alignItems="center">
+			<Stack flex={1} padding={2}>
+				<Stack
+					direction="row"
+					justifyContent="space-between"
+					alignItems="center"
+				>
+					<Typography variant="h6">
+						{!collateralYields?.underlying && "$ "}
+						<AccruingQuantity
+							quantity={balance.toFloat(collateralAsset.decimals)}
+							ratePerSecond={positionApy ?? 0}
+							precision={Math.min(collateralAsset.decimals, 3)}
+							decimals={Math.min(collateralAsset.decimals, 9)}
+						/>
+					</Typography>
 					{collateralYields?.underlying?.symbol && (
 						<Token symbol={collateralYields.underlying.symbol} size={20} />
 					)}
-				</Typography>
+				</Stack>
 				<Stack direction="row" alignItems="center">
 					<Typography variant="body1" mr={2}>
 						{balance.format(collateralAsset.decimals, 3)}
@@ -86,34 +87,39 @@ const PositionSummary = ({
 					<Token symbol={collateralAsset.symbol} size={20} />
 				</Stack>
 			</Stack>
-			<Tooltip
-				placement="top"
-				title={
-					<Stack direction="row" justifyContent="space-between">
-						<Stack alignItems="end">
-							<Typography variant="caption">30d</Typography>
-							<Typography variant="caption">7d</Typography>
-							<Typography variant="caption">1d</Typography>
+			<Stack padding={2}>
+				<Tooltip
+					placement="top"
+					title={
+						<Stack direction="row" justifyContent="space-between">
+							<Stack alignItems="end">
+								<Typography variant="caption">30d</Typography>
+								<Typography variant="caption">7d</Typography>
+								<Typography variant="caption">1d</Typography>
+							</Stack>
+							<Stack ml={2}>
+								<Typography variant="body2">
+									{monthlyPositionApy
+										? (monthlyPositionApy * 100).toFixed(2)
+										: 0}
+									%
+								</Typography>
+								<Typography variant="body2">
+									{weeklyPositionApy ? (weeklyPositionApy * 100).toFixed(2) : 0}
+									%
+								</Typography>
+								<Typography variant="body2">
+									{dailyPositionApy ? (dailyPositionApy * 100).toFixed(2) : 0}%
+								</Typography>
+							</Stack>
 						</Stack>
-						<Stack ml={2}>
-							<Typography variant="body2">
-								{monthlyPositionApy ? (monthlyPositionApy * 100).toFixed(2) : 0}
-								%
-							</Typography>
-							<Typography variant="body2">
-								{weeklyPositionApy ? (weeklyPositionApy * 100).toFixed(2) : 0}%
-							</Typography>
-							<Typography variant="body2">
-								{dailyPositionApy ? (dailyPositionApy * 100).toFixed(2) : 0}%
-							</Typography>
-						</Stack>
-					</Stack>
-				}
-			>
-				<Typography variant="h6">
-					{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-				</Typography>
-			</Tooltip>
+					}
+				>
+					<Typography variant="h6">
+						{positionApy ? (positionApy * 100).toFixed(2) : 0}%
+					</Typography>
+				</Tooltip>
+			</Stack>
 		</Stack>
 	);
 };

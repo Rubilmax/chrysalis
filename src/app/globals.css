@@ -34,53 +34,6 @@ body {
   }
 }
 
-@keyframes background-fade-in-out {
-  0% {
-    opacity: 0;
-    transform: none;
-  }
-
-  10% {
-    opacity: 0.35;
-    transform: rotate(5deg);
-  }
-
-  20% {
-    opacity: 0.1;
-    transform: rotate(10deg);
-  }
-
-  40% {
-    opacity: 0.1;
-    transform: rotate(90deg);
-  }
-
-  50% {
-    opacity: 0.35;
-    transform: rotate(95deg);
-  }
-
-  60% {
-    opacity: 0.1;
-    transform: rotate(100deg);
-  }
-
-  80% {
-    opacity: 0.1;
-    transform: rotate(180deg);
-  }
-
-  90% {
-    opacity: 0.35;
-    transform: rotate(185deg);
-  }
-
-  100% {
-    opacity: 0;
-    transform: rotate(190deg);
-  }
-}
-
 .Toastify__toast-container {
   padding: 0;
   top: unset;

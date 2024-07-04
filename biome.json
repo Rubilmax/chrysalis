@@ -12,6 +12,9 @@
 				"noUnusedTemplateLiteral": "off",
 				"useNodejsImportProtocol": "off",
 				"noParameterAssign": "off"
+			},
+			"a11y": {
+				"useMediaCaption": "off"
 			}
 		}
 	}

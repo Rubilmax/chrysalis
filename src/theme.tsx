@@ -91,7 +91,7 @@ const theme = createTheme({
 						variant: "transparent",
 					},
 					style: {
-						background: "rgba(255, 255, 255, 0.98)",
+						background: "rgba(255, 255, 255, 0.94)",
 					},
 				},
 			],
@@ -150,7 +150,7 @@ const theme = createTheme({
 		MuiFilledInput: {
 			styleOverrides: {
 				root: {
-					backgroundColor: "#F9F9F9",
+					backgroundColor: "#F3F3F3",
 				},
 			},
 		},
