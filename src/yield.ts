@@ -31,7 +31,7 @@ export interface AssetYields {
 		symbol?: string;
 		name?: string;
 		decimals?: number;
-		exchangeRate: number;
+		exchangeRate: bigint;
 	};
 }
 
@@ -217,7 +217,7 @@ export const useAssetYields = (address: Address) => {
 									symbol,
 									name,
 									decimals,
-									exchangeRate: value.toWadFloat(),
+									exchangeRate: value,
 								};
 							}
 
@@ -261,28 +261,28 @@ export const useAssetYields = (address: Address) => {
 
 export const usePositionApy = (
 	collateralValue: bigint | undefined,
-	borrowAssets: bigint | undefined,
+	borrowValue: bigint | undefined,
 	collateralApy: number | undefined,
 	borrowApy: number | null | undefined,
 ) =>
 	React.useMemo(() => {
 		if (
 			collateralValue == null ||
-			borrowAssets == null ||
+			borrowValue == null ||
 			collateralApy == null ||
 			borrowApy == null
 		)
 			return;
-		if (collateralValue === borrowAssets) {
-			if (borrowAssets === 0n) return 0;
+		if (collateralValue === borrowValue) {
+			if (borrowValue === 0n) return 0;
 
 			return Number.POSITIVE_INFINITY;
 		}
 
 		return (
 			collateralValue.wadMul(parseNumber(collateralApy)) -
-			borrowAssets.wadMul(parseNumber(borrowApy))
+			borrowValue.wadMul(parseNumber(borrowApy))
 		)
-			.wadDiv(collateralValue - borrowAssets)
+			.wadDiv(collateralValue - borrowValue)
 			.toWadFloat();
-	}, [collateralValue, borrowAssets, collateralApy, borrowApy]);
+	}, [collateralValue, borrowValue, collateralApy, borrowApy]);

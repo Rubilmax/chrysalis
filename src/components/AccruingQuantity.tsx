@@ -16,6 +16,9 @@ const AccruingQuantity = ({
 	decimals?: number;
 }) => {
 	const [accruingQuantity, setAccruingQuantity] = React.useState(quantity);
+
+	React.useEffect(() => setAccruingQuantity(quantity), [quantity]);
+
 	React.useEffect(() => {
 		const delay = 2;
 		const ratePerInterval = (1 + ratePerSecond) ** (delay / yearInSeconds);

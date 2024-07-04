@@ -178,7 +178,6 @@ const PositionContent = ({
 		<>
 			<PositionSummary
 				position={position}
-				positionApy={positionApy}
 				collateralYields={collateralYields}
 			/>
 			<Divider />

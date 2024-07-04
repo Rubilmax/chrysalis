@@ -1,4 +1,7 @@
+import { useLocalStorage } from "@/localStorage";
+import { getAssetUsdCentsPrecision } from "@/utils";
 import { type AssetYields, usePositionApy } from "@/yield";
+import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
@@ -8,13 +11,14 @@ import type { Position } from "../app/positions/[user]/[market]/page";
 import AccruingQuantity from "./AccruingQuantity";
 import Token from "./Token";
 
+const quoteAssets = ["collateral", "loan", "underlying", "usd"] as const;
+
 const PositionSummary = ({
 	position: {
 		collateral,
 		borrowAssets,
 		market: { loanAsset, collateralAsset, collateralPrice, ...market },
 	},
-	positionApy,
 	collateralYields,
 }: {
 	position: Omit<Position, "market"> & {
@@ -23,70 +27,136 @@ const PositionSummary = ({
 			collateralPrice: NonNullable<Position["market"]["collateralPrice"]>;
 		};
 	};
-	positionApy?: number;
 	collateralYields?: AssetYields;
 }) => {
+	const [quoteAsset, setQuoteAsset] = useLocalStorage<
+		(typeof quoteAssets)[number]
+	>(`${market.uniqueKey}-quoteAsset`, "loan");
+
 	const collateralValue = React.useMemo(
 		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
 		[collateral, collateralPrice],
 	);
 
-	const balance = React.useMemo(
-		() =>
-			(collateralValue - borrowAssets).mulDivDown(
-				parseUnits("1", 36),
-				collateralPrice,
-			),
-		[borrowAssets, collateralPrice, collateralValue],
+	const positionApy = usePositionApy(
+		collateralValue,
+		borrowAssets,
+		quoteAsset === "collateral" ? 0 : collateralYields?.apy,
+		market.state?.borrowApy,
 	);
-
 	const dailyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralYields?.dailyApy,
+		quoteAsset === "collateral" ? 0 : collateralYields?.dailyApy,
 		market.dailyApys?.borrowApy,
 	);
 	const weeklyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralYields?.weeklyApy,
+		quoteAsset === "collateral" ? 0 : collateralYields?.weeklyApy,
 		market.weeklyApys?.borrowApy,
 	);
 	const monthlyPositionApy = usePositionApy(
 		collateralValue,
 		borrowAssets,
-		collateralYields?.monthlyApy,
+		quoteAsset === "collateral" ? 0 : collateralYields?.monthlyApy,
 		market.monthlyApys?.borrowApy,
 	);
 
+	const balance = React.useMemo(() => {
+		const loanBalance = collateralValue - borrowAssets;
+
+		switch (quoteAsset) {
+			case "loan":
+				return loanBalance;
+			case "collateral":
+				return loanBalance.mulDivDown(parseUnits("1", 36), collateralPrice);
+			case "usd":
+				return loanBalance.wadDiv(
+					parseUnits((loanAsset.priceUsd ?? 0).toFixed(18), 18),
+				);
+			case "underlying":
+				return loanBalance
+					.mulDivDown(parseUnits("1", 36), collateralPrice)
+					.wadDivDown(collateralYields?.underlying?.exchangeRate ?? BigInt.WAD);
+			default:
+				throw Error("unknown quote asset");
+		}
+	}, [
+		quoteAsset,
+		collateralValue,
+		borrowAssets,
+		collateralPrice,
+		loanAsset.priceUsd,
+		collateralYields?.underlying?.exchangeRate,
+	]);
+
+	const precision =
+		quoteAsset === "usd"
+			? 2
+			: quoteAsset === "underlying"
+				? Math.min(collateralYields?.underlying?.decimals ?? 18, 3)
+				: getAssetUsdCentsPrecision(
+						quoteAsset === "collateral" ? collateralAsset : loanAsset,
+					);
+
 	return (
 		<Stack direction="row" justifyContent="space-between" alignItems="center">
-			<Stack flex={1} padding={2}>
-				<Stack
-					direction="row"
-					justifyContent="space-between"
-					alignItems="center"
+			<Tooltip
+				placement="top"
+				title={
+					quoteAsset === "collateral"
+						? "The value of your position quoted in the collateral asset decreases over time, because the collateral asset only accrues interest quoted in its underlying asset."
+						: undefined
+				}
+			>
+				<Button
+					onClick={() =>
+						setQuoteAsset((quoteAsset) => {
+							const index = quoteAssets.indexOf(quoteAsset);
+
+							let newQuoteAsset =
+								quoteAssets[(index + 1) % quoteAssets.length]!;
+							if (
+								newQuoteAsset === "underlying" &&
+								!collateralYields?.underlying
+							)
+								newQuoteAsset = quoteAssets[(index + 2) % quoteAssets.length]!;
+
+							return newQuoteAsset;
+						})
+					}
+					color="inherit"
+					sx={{
+						flex: 1,
+						padding: 2,
+						textTransform: "none",
+						justifyContent: "space-between",
+					}}
 				>
-					<Typography variant="h6">
-						{!collateralYields?.underlying && "$ "}
+					<Typography variant="h6" lineHeight={1.2}>
+						{quoteAsset === "usd" && "$ "}
 						<AccruingQuantity
 							quantity={balance.toFloat(collateralAsset.decimals)}
-							ratePerSecond={positionApy ?? 0}
-							precision={Math.min(collateralAsset.decimals, 3)}
-							decimals={Math.min(collateralAsset.decimals, 9)}
+							ratePerSecond={dailyPositionApy ?? 0}
+							precision={precision}
+							decimals={precision + 3}
 						/>
 					</Typography>
-					{collateralYields?.underlying?.symbol && (
-						<Token symbol={collateralYields.underlying.symbol} size={20} />
+					{quoteAsset !== "usd" && (
+						<Token
+							symbol={
+								quoteAsset === "collateral"
+									? collateralAsset.symbol
+									: quoteAsset === "loan"
+										? loanAsset.symbol
+										: collateralYields?.underlying?.symbol ?? "???"
+							}
+							size={20}
+						/>
 					)}
-				</Stack>
-				<Stack direction="row" alignItems="center">
-					<Typography variant="body1" mr={2}>
-						{balance.format(collateralAsset.decimals, 3)}
-					</Typography>
-					<Token symbol={collateralAsset.symbol} size={20} />
-				</Stack>
-			</Stack>
+				</Button>
+			</Tooltip>
 			<Stack padding={2}>
 				<Tooltip
 					placement="top"
