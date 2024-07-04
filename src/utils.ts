@@ -8,3 +8,6 @@ export const getAssetUsdCentsPrecision = (
 	asset: Pick<Asset, "priceUsd" | "decimals">,
 ) =>
 	asset.priceUsd ? Math.round(2 + Math.log10(asset.priceUsd)) : asset.decimals;
+
+export const stopPropagation = (event: React.MouseEvent) =>
+	event.stopPropagation();

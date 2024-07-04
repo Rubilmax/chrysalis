@@ -119,14 +119,7 @@ const NavBar = () => {
 								</IconButton>
 							</Stack>
 						</Stack>
-						{account.address && (
-							<Stack padding={2} marginTop={2}>
-								<Typography variant="subtitle1" paragraph gutterBottom>
-									Positions
-								</Typography>
-								<PositionList user={account.address} />
-							</Stack>
-						)}
+						{account.address && <PositionList user={account.address} />}
 
 						<Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}>
 							<Stack
@@ -185,14 +178,6 @@ const NavBar = () => {
 						</Dialog>
 					</Paper>
 				</Slide>
-				{/* <SwipeableDrawer
-					open={drawerOpen}
-					onOpen={() => setDrawerOpen(true)}
-					onClose={() => setDrawerOpen(false)}
-					anchor="right"
-					elevation={1}
-					hideBackdrop
-				></SwipeableDrawer> */}
 			</Toolbar>
 		</AppBar>
 	);

@@ -1,6 +1,4 @@
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import Avatar from "@mui/material/Avatar";
-import AvatarGroup from "@mui/material/AvatarGroup";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
@@ -9,6 +7,7 @@ import React from "react";
 import { parseUnits } from "viem";
 import type { Position } from "../app/positions/[user]/[market]/page";
 import "evm-maths";
+import MarketIcon from "./MarketIcon";
 
 export interface Market extends Pick<Position["market"], "uniqueKey" | "lltv"> {
 	collateralAsset: Pick<
@@ -38,19 +37,8 @@ const MarketTitle = ({
 			padding={2}
 		>
 			<Stack direction="row" alignItems="center">
-				<AvatarGroup sx={{ marginRight: 1 }}>
-					{market.collateralAsset && (
-						<Avatar
-							src={`https://cdn.morpho.org/assets/logos/${market.collateralAsset.symbol.toLowerCase()}.svg`}
-							sx={{ width: 32, height: 32, marginRight: -1 }}
-						/>
-					)}
-					<Avatar
-						src={`https://cdn.morpho.org/assets/logos/${market.loanAsset.symbol.toLowerCase()}.svg`}
-						sx={{ width: 32, height: 32 }}
-					/>
-				</AvatarGroup>
-				<Typography variant="h5" fontWeight={500}>
+				<MarketIcon market={market} sx={{ marginRight: 1 }} />
+				<Typography variant="h5">
 					{market.collateralAsset?.symbol ?? "Unknown"} /{" "}
 					{market.loanAsset.symbol}
 				</Typography>

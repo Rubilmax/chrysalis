@@ -1,3 +1,4 @@
+import { stopPropagation } from "@/utils";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import IconButton from "@mui/material/IconButton";
@@ -68,17 +69,16 @@ const DataLink = ({ data, type, ...props }: DataLinkProps) => {
 				target="_blank"
 				rel="noopener noreferrer"
 				sx={{ ...props.sx, verticalAlign: "middle" }}
-				onClick={(event) => {
-					event.stopPropagation();
-				}}
+				onClick={stopPropagation}
 				noWrap
 			>
 				{ens ?? dataLabel}
 				<OpenInNewIcon sx={{ fontSize: 12, marginLeft: 0.4 }} />
 			</Typography>
 			<IconButton
+				size="square"
 				color="inherit"
-				sx={{ fontSize: 12, padding: 0.4, marginLeft: 0.6, borderRadius: 1 }}
+				sx={{ fontSize: 12, marginLeft: 0.6 }}
 			>
 				<ContentCopyIcon fontSize="inherit" onClick={copyToClipboard} />
 			</IconButton>

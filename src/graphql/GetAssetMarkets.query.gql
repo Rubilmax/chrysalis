@@ -1,12 +1,6 @@
-query getUserMarketPosition($user: String!, $market: String!, $chainId: Int!) {
-  marketPosition(userAddress: $user, marketUniqueKey: $market, chainId: $chainId) {
-    id
-    borrowShares
-    borrowAssets
-    borrowAssetsUsd
-    collateral
-    collateralUsd
-    market {
+query getAssetMarkets($asset: String!, $chainId: Int!) {
+  markets(where: { chainId_in: [$chainId] collateralAssetAddress_in: [$asset] }) {
+    items {
       id
       uniqueKey
       lltv
@@ -48,14 +42,6 @@ query getUserMarketPosition($user: String!, $market: String!, $chainId: Int!) {
       state {
         borrowApy
         netBorrowApy
-      }
-    }
-    user {
-      id
-      address
-      tag
-      chain {
-        id
       }
     }
   }

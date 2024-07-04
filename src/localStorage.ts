@@ -69,14 +69,15 @@ export function useLocalStorage<T>(key: string, initialValue?: T) {
 	);
 
 	const setState = React.useCallback(
-		(v: React.SetStateAction<T | undefined>) =>
+		(action: React.SetStateAction<T | undefined>) => {
 			setItem(
 				key,
-				typeof v === "function"
+				typeof action === "function"
 					? // @ts-ignore
-						v(store ? JSON.parse(store) : undefined)
-					: v,
-			),
+						action(store ? JSON.parse(store) : undefined)
+					: action,
+			);
+		},
 		[key, store],
 	);
 

@@ -130,6 +130,14 @@ const theme = createTheme({
 				},
 			},
 		},
+		MuiIconButton: {
+			variants: [
+				{
+					props: { size: "square" },
+					style: { padding: "0.2em", borderRadius: 4 },
+				},
+			],
+		},
 		MuiTextField: {
 			variants: [
 				{
@@ -197,6 +205,12 @@ const theme = createTheme({
 declare module "@mui/material/Paper" {
 	interface PaperPropsVariantOverrides {
 		transparent: true;
+	}
+}
+
+declare module "@mui/material/IconButton" {
+	interface IconButtonPropsSizeOverrides {
+		square: true;
 	}
 }
 
