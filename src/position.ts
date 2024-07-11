@@ -3,8 +3,12 @@ import "evm-maths";
 import React from "react";
 import { parseUnits } from "viem";
 import { parseNumber } from "./format";
-import type { Asset, MarketState } from "./graphql/types";
-import { useAssetYields } from "./yield";
+import type { Asset } from "./graphql/types";
+
+export const quoteAssets = ["collateral", "underlying"] as const;
+
+export const getNextQuoteAsset = (quoteAsset: (typeof quoteAssets)[number]) =>
+	quoteAssets[(quoteAssets.indexOf(quoteAsset) + 1) % quoteAssets.length]!;
 
 export const usePositionApy = (
 	collateralValue: bigint | undefined,
@@ -20,6 +24,7 @@ export const usePositionApy = (
 			borrowApy == null
 		)
 			return;
+
 		if (collateralValue === borrowValue) {
 			if (borrowValue === 0n) return 0;
 
@@ -37,7 +42,7 @@ export const usePositionApy = (
 export const usePositionDetails = ({
 	balance,
 	withdraw = 0n,
-	market: { collateralPrice, ...market },
+	market: { collateralPrice },
 	leverage,
 }: {
 	leverage: number;
@@ -45,12 +50,9 @@ export const usePositionDetails = ({
 	withdraw?: bigint;
 	market: {
 		collateralAsset: Pick<Asset, "address">;
-		state: Pick<MarketState, "borrowApy"> | null;
 		collateralPrice: bigint;
 	};
 }) => {
-	const [collateralYields] = useAssetYields(market.collateralAsset.address);
-
 	const targetLtv = React.useMemo(
 		() => BigInt.WAD - BigInt.WAD.wadDivUp(parseNumber(leverage)),
 		[leverage],
@@ -92,20 +94,12 @@ export const usePositionDetails = ({
 		);
 	}, [targetLoan, collateralPrice, targetCollateralValue]);
 
-	const targetPositionApy = usePositionApy(
-		targetCollateralValue,
-		targetLoan,
-		collateralYields?.apy,
-		market.state?.borrowApy, // TODO: use targetBorrowApy
-	);
-
 	return {
-		collateralYields,
 		targetLtv,
 		targetCollateral,
 		targetLoan,
 		resultLtv,
 		targetBalance,
-		targetPositionApy,
+		targetCollateralValue,
 	};
 };

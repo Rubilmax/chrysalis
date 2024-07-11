@@ -41,7 +41,6 @@ const MarketTitle = ({
 			direction="row"
 			justifyContent="space-between"
 			alignItems="center"
-			flex={1}
 			padding={2}
 		>
 			<Stack direction="row" alignItems="center">
@@ -70,6 +69,7 @@ const MarketTitle = ({
 						× {maxLeverage.format(18, 2)}
 					</Typography>
 				}
+				sx={{ marginLeft: 1 }}
 			/>
 		</Stack>
 	);

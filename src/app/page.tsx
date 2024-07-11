@@ -16,17 +16,27 @@ import Typography from "@mui/material/Typography";
 import AssetSelect, { type AssetOption } from "@/components/AssetSelect";
 import LeverageField from "@/components/LeverageField";
 import MarketTitle from "@/components/MarketTitle";
+import Token from "@/components/Token";
 import {
 	type GetAssetMarketsQuery,
 	useGetAssetMarketsQuery,
 } from "@/graphql/GetAssetMarkets.query.generated";
 import type { Asset } from "@/graphql/types";
 import { useLocalStorage } from "@/localStorage";
-import { usePositionDetails } from "@/position";
+import {
+	getNextQuoteAsset,
+	type quoteAssets,
+	usePositionApy,
+	usePositionDetails,
+} from "@/position";
+import { type AssetYields, useAssetYields } from "@/yield";
+import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { type Hex, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
 
+const defaultMaxLeverage = 1 / (1 - 0.985);
 const assetKey = "selectedAsset";
 const marketKey = "selectedMarket";
 
@@ -35,6 +45,7 @@ const MarketOption = React.memo(
 		market,
 		amount,
 		leverage,
+		collateralYields,
 	}: {
 		market: NonNullable<GetAssetMarketsQuery["markets"]["items"]>[number] & {
 			collateralAsset: Pick<Asset, "address">;
@@ -42,18 +53,44 @@ const MarketOption = React.memo(
 		};
 		amount: bigint;
 		leverage: number;
+		collateralYields?: AssetYields;
 	}) => {
 		const {
 			targetBalance,
-			targetPositionApy,
 			resultLtv,
 			targetCollateral,
 			targetLoan,
+			targetCollateralValue,
 		} = usePositionDetails({
 			market,
 			balance: amount,
 			leverage,
 		});
+
+		const positionApy = usePositionApy(
+			targetCollateralValue,
+			targetLoan,
+			collateralYields?.apy,
+			market.state?.borrowApy, // TODO: use targetBorrowApy
+		);
+		const dailyPositionApy = usePositionApy(
+			targetCollateralValue,
+			targetLoan,
+			collateralYields?.dailyApy,
+			market.dailyApys?.borrowApy,
+		);
+		const weeklyPositionApy = usePositionApy(
+			targetCollateralValue,
+			targetLoan,
+			collateralYields?.weeklyApy,
+			market.weeklyApys?.borrowApy,
+		);
+		const monthlyPositionApy = usePositionApy(
+			targetCollateralValue,
+			targetLoan,
+			collateralYields?.monthlyApy,
+			market.monthlyApys?.borrowApy,
+		);
 
 		return (
 			<ToggleButton
@@ -61,7 +98,52 @@ const MarketOption = React.memo(
 				value={market.uniqueKey}
 				sx={{ padding: 0 }}
 			>
-				<MarketTitle market={market} variant="subtitle1" />
+				<Stack
+					direction="row"
+					justifyContent="space-between"
+					alignItems="center"
+					flex={1}
+				>
+					<MarketTitle market={market} variant="subtitle1" />
+					<Stack marginRight={2}>
+						<Tooltip
+							placement="top"
+							title={
+								<Stack direction="row" justifyContent="space-between">
+									<Stack alignItems="end">
+										<Typography variant="caption">30d</Typography>
+										<Typography variant="caption">7d</Typography>
+										<Typography variant="caption">1d</Typography>
+									</Stack>
+									<Stack ml={2}>
+										<Typography variant="body2">
+											{monthlyPositionApy
+												? (monthlyPositionApy * 100).toFixed(2)
+												: 0}
+											%
+										</Typography>
+										<Typography variant="body2">
+											{weeklyPositionApy
+												? (weeklyPositionApy * 100).toFixed(2)
+												: 0}
+											%
+										</Typography>
+										<Typography variant="body2">
+											{dailyPositionApy
+												? (dailyPositionApy * 100).toFixed(2)
+												: 0}
+											%
+										</Typography>
+									</Stack>
+								</Stack>
+							}
+						>
+							<Typography variant="subtitle1">
+								{positionApy ? (positionApy * 100).toFixed(2) : 0}%
+							</Typography>
+						</Tooltip>
+					</Stack>
+				</Stack>
 			</ToggleButton>
 		);
 	},
@@ -80,8 +162,16 @@ const MarketOptions = React.memo(
 		asset,
 		amount,
 		leverage,
-	}: { asset: AssetOption; amount: bigint; leverage: number }) => {
+		setMaxLeverage,
+	}: {
+		asset: AssetOption;
+		amount: bigint;
+		leverage: number;
+		setMaxLeverage: React.Dispatch<React.SetStateAction<number>>;
+	}) => {
 		const chainId = useChainId();
+
+		const [collateralYields] = useAssetYields(asset.address);
 
 		const { data, loading, error } = useGetAssetMarketsQuery({
 			variables: {
@@ -91,7 +181,17 @@ const MarketOptions = React.memo(
 			skip: !asset,
 		});
 
-		const [selected, setSelected] = useLocalStorage<Hex>(marketKey);
+		React.useEffect(() => {
+			setMaxLeverage(
+				Math.max(
+					...(data?.markets.items?.map(
+						(market) => 1 / (1 - market.lltv.toWadFloat()),
+					) ?? [defaultMaxLeverage]),
+				),
+			);
+		}, [data?.markets.items, setMaxLeverage]);
+
+		const [selected, setSelected] = React.useState<Hex>();
 
 		return (
 			<ToggleButtonGroup
@@ -102,12 +202,14 @@ const MarketOptions = React.memo(
 			>
 				{data?.markets.items
 					?.filter(hasCollateralAssetAndPrice)
+					.filter((market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage)
 					.map((market, i) => (
 						<MarketOption
 							key={market.id}
 							market={market}
 							amount={amount}
 							leverage={leverage}
+							collateralYields={collateralYields}
 						/>
 					))}
 			</ToggleButtonGroup>
@@ -132,12 +234,13 @@ export default function Home() {
 
 		const amount = parseUnits(amountField, asset.decimals ?? 18);
 		if (balance != null && amount > balance)
-			return { amountError: "Insufficient balance" };
+			return { amount, amountError: "Insufficient balance" };
 
 		return { amount };
 	}, [amountField, balance, asset?.decimals]);
 
 	const [leverageField, setLeverageField] = React.useState(1);
+	const [maxLeverage, setMaxLeverage] = React.useState(defaultMaxLeverage);
 
 	return (
 		<Stack alignItems="center">
@@ -216,7 +319,8 @@ export default function Home() {
 						<LeverageField
 							value={leverageField}
 							setValue={setLeverageField}
-							max={1 / (1 - 0.985)}
+							max={maxLeverage}
+							disabled={!amount}
 						/>
 					</Stack>
 
@@ -226,6 +330,7 @@ export default function Home() {
 								asset={asset}
 								amount={amount}
 								leverage={leverageField}
+								setMaxLeverage={setMaxLeverage}
 							/>
 						</Stack>
 					)}

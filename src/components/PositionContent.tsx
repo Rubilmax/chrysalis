@@ -110,13 +110,14 @@ const PositionContent = ({
 		Math.min(leverage, maxLeverage),
 	);
 
+	const [collateralYields] = useAssetYields(collateralAsset.address);
+
 	const {
-		collateralYields,
 		targetBalance,
-		targetPositionApy,
 		resultLtv,
 		targetCollateral,
 		targetLoan,
+		targetCollateralValue,
 	} = usePositionDetails({
 		market: position.market,
 		balance,
@@ -129,6 +130,13 @@ const PositionContent = ({
 		borrowAssets,
 		collateralYields?.apy,
 		market.state?.borrowApy,
+	);
+
+	const targetPositionApy = usePositionApy(
+		targetCollateralValue,
+		targetLoan,
+		collateralYields?.apy,
+		market.state?.borrowApy, // TODO: use targetBorrowApy
 	);
 
 	const hasInput = withdraw !== 0n || leverageField !== leverage;

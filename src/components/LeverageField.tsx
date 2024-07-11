@@ -8,27 +8,31 @@ export interface LeverageFieldProps extends SliderProps {
 }
 
 const LeverageField = ({ value, setValue, ...props }: LeverageFieldProps) => {
-	const scale = React.useCallback(
+	const scaleIn = React.useCallback(
 		(x: number) => props.max ** ((x - 1) / (props.max - 1)),
+		[props.max],
+	);
+	const scaleOut = React.useCallback(
+		(x: number) => 1 + ((props.max - 1) * Math.log(x)) / Math.log(props.max),
 		[props.max],
 	);
 
 	const marks = React.useMemo(
 		() =>
 			[1, 2, 3, 4, 5, 7, 10, 15, 20, 30, 50].map((value) => ({
-				value: 1 + ((props.max - 1) * Math.log(value)) / Math.log(props.max),
+				value: scaleOut(value),
 				label: `×${value}`,
 			})),
-		[props.max],
+		[scaleOut],
 	);
 
 	return (
 		<Slider
-			value={value}
-			onChange={(_, value) => setValue(value as number)}
+			value={scaleOut(value)}
+			onChange={(_, value) => setValue(scaleIn(value as number))}
 			min={1}
 			step={0.1}
-			scale={scale}
+			scale={scaleIn}
 			marks={marks}
 			valueLabelDisplay="auto"
 			valueLabelFormat={(value) => `×${value.toFixed(2)}`}

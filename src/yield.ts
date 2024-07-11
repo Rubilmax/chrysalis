@@ -1,4 +1,4 @@
-import { cbEthAbi } from "@/abis";
+import { cbEthAbi, morphoOracleAbi } from "@/abis";
 import React from "react";
 import { type Address, erc20Abi, erc4626Abi } from "viem";
 import { useChainId, usePublicClient } from "wagmi";
@@ -136,13 +136,14 @@ export const useAssetYields = (address: Address) => {
 
 							const blockNumbers = [
 								blockNumber,
-								blockNumber - BigInt(Math.ceil(dayInSeconds / blockDelay)),
+								blockNumber -
+									BigInt(Math.ceil((1.5 * dayInSeconds) / blockDelay)),
 								blockNumber - BigInt(Math.ceil(weekInSeconds / blockDelay)),
 								blockNumber - BigInt(Math.ceil(monthInSeconds / blockDelay)),
 							];
 
-							const [asset, now, dayAgo, weekAgo, monthAgo] = await Promise.all(
-								[
+							const [asset, now, daysAgo, weekAgo, monthAgo] =
+								await Promise.all([
 									client
 										.readContract({
 											address,
@@ -174,12 +175,11 @@ export const useAssetYields = (address: Address) => {
 												0n, // Fallback to zero.
 											] as const,
 									),
-								],
-							);
+								]);
 
 							// All of these are guaranteed to be defined thanks to the "0n" fallback value.
 							const value = now!.find(isDefined)!;
-							const value1DAgo = dayAgo!.find(isDefined)!;
+							const value2DAgo = daysAgo!.find(isDefined)!;
 							const value1WAgo = weekAgo!.find(isDefined)!;
 							const value1MAgo = monthAgo!.find(isDefined)!;
 
@@ -220,10 +220,10 @@ export const useAssetYields = (address: Address) => {
 								};
 							}
 
-							if (value1DAgo > 0n)
+							if (value2DAgo > 0n)
 								yields.apy = yields.dailyApy =
-									(1 + (value - value1DAgo).wadDiv(value1DAgo).toWadFloat()) **
-										(yearInSeconds / dayInSeconds) -
+									(1 + (value - value2DAgo).wadDiv(value2DAgo).toWadFloat()) **
+										(yearInSeconds / (1.5 * dayInSeconds)) -
 									1;
 							if (value1WAgo > 0n)
 								yields.weeklyApy =
@@ -256,4 +256,59 @@ export const useAssetYields = (address: Address) => {
 	}, [address, client, chainId]);
 
 	return [yields, isFetching] as const;
+};
+
+export interface AssetPrices {
+	now: bigint;
+	dayAgo: bigint;
+	weekAgo: bigint;
+	monthAgo: bigint;
+}
+
+export const useCollateralPrices = (oracle: Address) => {
+	const [prices, setPrices] = React.useState<AssetPrices>();
+	const [isFetching, startTransition] = React.useTransition();
+
+	const client = usePublicClient();
+	const chainId = useChainId();
+
+	React.useEffect(() => {
+		startTransition(() => {
+			(async () => {
+				const blockDelay = blockDelays[chainId];
+				if (client != null && blockDelay) {
+					const blockNumber = await client.getBlockNumber();
+
+					const blockNumbers = [
+						blockNumber,
+						blockNumber - BigInt(Math.ceil(dayInSeconds / blockDelay)),
+						blockNumber - BigInt(Math.ceil(weekInSeconds / blockDelay)),
+						blockNumber - BigInt(Math.ceil(monthInSeconds / blockDelay)),
+					];
+
+					const [now, dayAgo, weekAgo, monthAgo] = await Promise.all(
+						blockNumbers.map((blockNumber) =>
+							client
+								.readContract({
+									address: oracle,
+									abi: morphoOracleAbi,
+									functionName: "price",
+									blockNumber,
+								})
+								.catch(() => 0n),
+						),
+					);
+
+					setPrices({
+						now: now!,
+						dayAgo: dayAgo!,
+						weekAgo: weekAgo!,
+						monthAgo: monthAgo!,
+					});
+				}
+			})();
+		});
+	}, [oracle, client, chainId]);
+
+	return [prices, isFetching] as const;
 };
