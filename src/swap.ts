@@ -18,16 +18,15 @@ export interface BestSwapResponse {
 	};
 }
 
-export const fetchBestSwap = async ({
-	chainId,
-	...options
-}: BestSwapParams): Promise<BestSwapResponse> => {
+export const fetchBestSwap = async (
+	params: BestSwapParams,
+): Promise<BestSwapResponse> => {
 	const url = new URL(
 		"",
 		"https://6jnmtecqz8.execute-api.eu-west-3.amazonaws.com",
 	);
 
-	for (const [key, value] of Object.entries(options)) {
+	for (const [key, value] of Object.entries(params)) {
 		url.searchParams.set(key, value.toString());
 	}
 

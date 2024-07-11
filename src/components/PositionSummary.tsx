@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@/localStorage";
+import { usePositionApy } from "@/position";
 import { getAssetUsdCentsPrecision } from "@/utils";
-import { type AssetYields, usePositionApy } from "@/yield";
+import type { AssetYields } from "@/yield";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";

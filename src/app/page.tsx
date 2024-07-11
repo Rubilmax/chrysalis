@@ -9,30 +9,111 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 
 import AssetSelect, { type AssetOption } from "@/components/AssetSelect";
-import { useGetAssetMarketsQuery } from "@/graphql/GetAssetMarkets.query.generated";
+import LeverageField from "@/components/LeverageField";
+import MarketTitle from "@/components/MarketTitle";
+import {
+	type GetAssetMarketsQuery,
+	useGetAssetMarketsQuery,
+} from "@/graphql/GetAssetMarkets.query.generated";
+import type { Asset } from "@/graphql/types";
 import { useLocalStorage } from "@/localStorage";
+import { usePositionDetails } from "@/position";
 import React from "react";
-import { parseUnits } from "viem";
+import { type Hex, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
 
 const assetKey = "selectedAsset";
+const marketKey = "selectedMarket";
 
-const MarketOptions = ({ asset }: { asset: AssetOption }) => {
-	const chainId = useChainId();
+const MarketOption = React.memo(
+	({
+		market,
+		amount,
+		leverage,
+	}: {
+		market: NonNullable<GetAssetMarketsQuery["markets"]["items"]>[number] & {
+			collateralAsset: Pick<Asset, "address">;
+			collateralPrice: bigint;
+		};
+		amount: bigint;
+		leverage: number;
+	}) => {
+		const {
+			targetBalance,
+			targetPositionApy,
+			resultLtv,
+			targetCollateral,
+			targetLoan,
+		} = usePositionDetails({
+			market,
+			balance: amount,
+			leverage,
+		});
 
-	const { data, loading, error } = useGetAssetMarketsQuery({
-		variables: {
-			chainId,
-			asset: asset.address,
-		},
-		skip: !asset,
-	});
+		return (
+			<ToggleButton
+				key={market.id}
+				value={market.uniqueKey}
+				sx={{ padding: 0 }}
+			>
+				<MarketTitle market={market} variant="subtitle1" />
+			</ToggleButton>
+		);
+	},
+);
 
-	return null;
-};
+const hasCollateralAssetAndPrice = <
+	C extends {},
+	T extends { collateralAsset: C | null; collateralPrice: bigint | null },
+>(
+	market: T,
+): market is T & { collateralAsset: C; collateralPrice: bigint } =>
+	market.collateralAsset != null && market.collateralPrice != null;
+
+const MarketOptions = React.memo(
+	({
+		asset,
+		amount,
+		leverage,
+	}: { asset: AssetOption; amount: bigint; leverage: number }) => {
+		const chainId = useChainId();
+
+		const { data, loading, error } = useGetAssetMarketsQuery({
+			variables: {
+				chainId,
+				asset: asset.address,
+			},
+			skip: !asset,
+		});
+
+		const [selected, setSelected] = useLocalStorage<Hex>(marketKey);
+
+		return (
+			<ToggleButtonGroup
+				orientation="vertical"
+				value={selected}
+				exclusive
+				onChange={(_, value) => setSelected(value)}
+			>
+				{data?.markets.items
+					?.filter(hasCollateralAssetAndPrice)
+					.map((market, i) => (
+						<MarketOption
+							key={market.id}
+							market={market}
+							amount={amount}
+							leverage={leverage}
+						/>
+					))}
+			</ToggleButtonGroup>
+		);
+	},
+);
 
 export default function Home() {
 	const account = useAccount();
@@ -55,6 +136,8 @@ export default function Home() {
 
 		return { amount };
 	}, [amountField, balance, asset?.decimals]);
+
+	const [leverageField, setLeverageField] = React.useState(1);
 
 	return (
 		<Stack alignItems="center">
@@ -123,7 +206,29 @@ export default function Home() {
 						InputLabelProps={{ shrink: true }}
 					/>
 
-					{asset && <MarketOptions asset={asset} />}
+					<Stack
+						direction="row"
+						alignItems="center"
+						marginTop={2}
+						pl={2}
+						pr={2}
+					>
+						<LeverageField
+							value={leverageField}
+							setValue={setLeverageField}
+							max={1 / (1 - 0.985)}
+						/>
+					</Stack>
+
+					{asset && amount != null && (
+						<Stack marginTop={2}>
+							<MarketOptions
+								asset={asset}
+								amount={amount}
+								leverage={leverageField}
+							/>
+						</Stack>
+					)}
 				</Stack>
 			</Paper>
 		</Stack>

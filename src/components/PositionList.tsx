@@ -2,7 +2,8 @@ import {
 	type GetUserMarketPositionSummariesQuery,
 	useGetUserMarketPositionSummariesQuery,
 } from "@/graphql/GetMarketPositionSummaries.query.generated";
-import { useAssetYields, usePositionApy } from "@/yield";
+import { usePositionApy } from "@/position";
+import { useAssetYields } from "@/yield";
 import Link from "@mui/material/Link";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -102,6 +103,22 @@ const PositionItem = React.memo(
 	},
 );
 
+const hasCollateralAssetAndPrice = <
+	C extends {},
+	T extends {
+		market: { collateralAsset: C | null; collateralPrice: bigint | null };
+	},
+>(
+	position: T,
+): position is T & {
+	market: {
+		collateralAsset: C;
+		collateralPrice: bigint;
+	};
+} =>
+	position.market.collateralAsset != null &&
+	position.market.collateralPrice != null;
+
 const PositionList = ({ user }: { user: Address }) => {
 	const chainId = useChainId();
 
@@ -121,15 +138,11 @@ const PositionList = ({ user }: { user: Address }) => {
 							</ListItem>
 						))
 				: data?.userByAddress.marketPositions
-						.filter(
-							(position) =>
-								position.market.collateralAsset &&
-								position.market.collateralPrice != null,
-						)
+						.filter(hasCollateralAssetAndPrice)
 						.map((position) => (
 							<PositionItem
 								key={user + position.market.uniqueKey}
-								position={position as Position}
+								position={position}
 							/>
 						))}
 		</List>

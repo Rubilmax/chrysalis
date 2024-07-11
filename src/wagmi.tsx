@@ -3,7 +3,7 @@ import { createToast, updateToast } from "@/toast";
 import { getDefaultConfig } from "connectkit";
 import React from "react";
 import type { Id } from "react-toastify";
-import { type Address, erc20Abi } from "viem";
+import { http, type Address, erc20Abi } from "viem";
 import { createConfig, useReadContract } from "wagmi";
 import {
 	type Config,
@@ -17,7 +17,12 @@ import {
 	useWaitForTransactionReceipt as useWagmiWaitForTransactionReceipt,
 } from "wagmi";
 import { base, mainnet, sepolia } from "wagmi/chains";
-import { coinbaseWallet, injected, safe } from "wagmi/connectors";
+import {
+	coinbaseWallet,
+	injected,
+	safe,
+	walletConnect,
+} from "wagmi/connectors";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
 const appLogoUrl = "https://rubilmax.github.io/chrysalis/chrysalis.png";
@@ -28,16 +33,20 @@ export const config = createConfig(
 		chains: [mainnet, sepolia, base],
 		connectors: [
 			injected(),
-			coinbaseWallet({ appName: "Chrysalis", appLogoUrl }),
+			coinbaseWallet({ appName: "Ninja Blue", appLogoUrl }),
 			safe(),
+			walletConnect({ projectId: walletConnectProjectId, showQrModal: false }),
 		],
 		ssr: true,
-		appName: "Chrysalis",
+		appName: "Ninja Blue",
 		appDescription: "Minimalist widget for Morpho Blue",
 		appUrl: "https://rubilmax.github.io/chrysalis/",
 		appIcon: appLogoUrl, // no bigger than 1024x1024px (max. 1MB)
 		batch: {
 			multicall: true,
+		},
+		transports: {
+			[mainnet.id]: http(),
 		},
 	}),
 );
@@ -196,9 +205,3 @@ export const useErc20Balance = (
 			enabled: !!account,
 		},
 	});
-
-declare module "wagmi" {
-	interface Register {
-		config: typeof config;
-	}
-}

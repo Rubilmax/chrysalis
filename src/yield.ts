@@ -3,7 +3,6 @@ import React from "react";
 import { type Address, erc20Abi, erc4626Abi } from "viem";
 import { useChainId, usePublicClient } from "wagmi";
 import { base, mainnet } from "wagmi/chains";
-import { parseNumber } from "./format";
 import { isDefined } from "./utils";
 
 export const dayInSeconds = 24 * 60 * 60;
@@ -258,31 +257,3 @@ export const useAssetYields = (address: Address) => {
 
 	return [yields, isFetching] as const;
 };
-
-export const usePositionApy = (
-	collateralValue: bigint | undefined,
-	borrowValue: bigint | undefined,
-	collateralApy: number | undefined,
-	borrowApy: number | null | undefined,
-) =>
-	React.useMemo(() => {
-		if (
-			collateralValue == null ||
-			borrowValue == null ||
-			collateralApy == null ||
-			borrowApy == null
-		)
-			return;
-		if (collateralValue === borrowValue) {
-			if (borrowValue === 0n) return 0;
-
-			return Number.POSITIVE_INFINITY;
-		}
-
-		return (
-			collateralValue.wadMul(parseNumber(collateralApy)) -
-			borrowValue.wadMul(parseNumber(borrowApy))
-		)
-			.wadDiv(collateralValue - borrowValue)
-			.toWadFloat();
-	}, [collateralValue, borrowValue, collateralApy, borrowApy]);

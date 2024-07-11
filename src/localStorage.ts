@@ -86,5 +86,5 @@ export function useLocalStorage<T>(key: string, initialValue?: T) {
 			setItem(key, initialValue);
 	}, [key, initialValue]);
 
-	return [store ? JSON.parse(store) : undefined, setState];
+	return [store ? JSON.parse(store) : initialValue, setState];
 }

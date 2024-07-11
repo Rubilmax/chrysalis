@@ -30,24 +30,19 @@ export const swap: APIGatewayProxyHandler = async (
 	context,
 ) => {
 	try {
-		const chainId = Number.parseInt(queryStringParameters?.chainId ?? "");
-		const slippage = Number.parseFloat(queryStringParameters?.slippage ?? "");
-		const amount = BigInt(queryStringParameters?.amount ?? "");
-		const { src, dst, from } = queryStringParameters ?? {};
+		if (queryStringParameters == null) throw Error("no query provided");
 
-		if (
-			queryStringParameters == null ||
-			Number.isNaN(chainId) ||
-			!src ||
-			!isAddress(src) ||
-			!dst ||
-			!isAddress(dst) ||
-			!from ||
-			!isAddress(from) ||
-			!amount ||
-			!slippage
-		)
-			throw Error("invalid query");
+		const { src, dst, from } = queryStringParameters;
+		const chainId = Number.parseInt(queryStringParameters.chainId ?? "");
+		const slippage = Number.parseFloat(queryStringParameters.slippage ?? "");
+		const amount = BigInt(queryStringParameters.amount ?? "");
+
+		if (Number.isNaN(chainId)) throw Error("invalid chain id");
+		if (!src || !isAddress(src)) throw Error("invalid src token");
+		if (!dst || !isAddress(dst)) throw Error("invalid dst token");
+		if (!from || !isAddress(from)) throw Error("invalid from address");
+		if (!amount) throw Error("invalid amount");
+		if (!slippage) throw Error("invalid slippage");
 
 		const quotes = await Promise.all([
 			fetchSwap({
@@ -93,6 +88,9 @@ export const swap: APIGatewayProxyHandler = async (
 
 		return {
 			statusCode: 200,
+			headers: {
+				"Access-Control-Allow-Origin": "http://localhost:3000",
+			},
 			body: JSON.stringify(
 				successQuotes.reduce(
 					(prev, current) =>

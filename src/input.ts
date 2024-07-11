@@ -1,3 +1,5 @@
+import "evm-maths";
+
 import { useDebounce } from "@uidotdev/usehooks";
 import React from "react";
 import { type Address, getAddress } from "viem";
