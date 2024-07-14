@@ -10,6 +10,7 @@ import React from "react";
 import { parseUnits } from "viem";
 import type { Position } from "../app/positions/[user]/[market]/page";
 import AccruingQuantity from "./AccruingQuantity";
+import PositionApy from "./PositionApy";
 import Token from "./Token";
 
 const quoteAssets = ["collateral", "loan", "underlying", "usd"] as const;
@@ -44,24 +45,6 @@ const PositionSummary = ({
 		borrowAssets,
 		quoteAsset === "collateral" ? 0 : collateralYields?.apy,
 		market.state?.borrowApy,
-	);
-	const dailyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		quoteAsset === "collateral" ? 0 : collateralYields?.dailyApy,
-		market.dailyApys?.borrowApy,
-	);
-	const weeklyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		quoteAsset === "collateral" ? 0 : collateralYields?.weeklyApy,
-		market.weeklyApys?.borrowApy,
-	);
-	const monthlyPositionApy = usePositionApy(
-		collateralValue,
-		borrowAssets,
-		quoteAsset === "collateral" ? 0 : collateralYields?.monthlyApy,
-		market.monthlyApys?.borrowApy,
 	);
 
 	const balance = React.useMemo(() => {
@@ -139,7 +122,7 @@ const PositionSummary = ({
 						{quoteAsset === "usd" && "$ "}
 						<AccruingQuantity
 							quantity={balance.toFloat(collateralAsset.decimals)}
-							ratePerSecond={dailyPositionApy ?? 0}
+							ratePerSecond={positionApy ?? 0}
 							precision={precision}
 							decimals={precision + 3}
 						/>
@@ -159,37 +142,13 @@ const PositionSummary = ({
 				</Button>
 			</Tooltip>
 			<Stack padding={2}>
-				<Tooltip
-					placement="top"
-					title={
-						<Stack direction="row" justifyContent="space-between">
-							<Stack alignItems="end">
-								<Typography variant="caption">30d</Typography>
-								<Typography variant="caption">7d</Typography>
-								<Typography variant="caption">1d</Typography>
-							</Stack>
-							<Stack ml={2}>
-								<Typography variant="body2">
-									{monthlyPositionApy
-										? (monthlyPositionApy * 100).toFixed(2)
-										: 0}
-									%
-								</Typography>
-								<Typography variant="body2">
-									{weeklyPositionApy ? (weeklyPositionApy * 100).toFixed(2) : 0}
-									%
-								</Typography>
-								<Typography variant="body2">
-									{dailyPositionApy ? (dailyPositionApy * 100).toFixed(2) : 0}%
-								</Typography>
-							</Stack>
-						</Stack>
-					}
-				>
-					<Typography variant="h6">
-						{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-					</Typography>
-				</Tooltip>
+				<PositionApy
+					market={market} // TODO: use target borrow APY
+					collateralValue={collateralValue}
+					borrowAssets={borrowAssets}
+					collateralYields={collateralYields}
+					quoteAsset={quoteAsset === "collateral" ? "collateral" : "underlying"}
+				/>
 			</Stack>
 		</Stack>
 	);

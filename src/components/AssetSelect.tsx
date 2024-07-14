@@ -56,7 +56,6 @@ const AssetItem = React.memo(
 
 		return (
 			<ListItem
-				key={asset.address}
 				secondaryAction={
 					data && (
 						<Typography variant="body1" fontWeight={500}>

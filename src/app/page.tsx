@@ -15,30 +15,89 @@ import Typography from "@mui/material/Typography";
 
 import AssetSelect, { type AssetOption } from "@/components/AssetSelect";
 import LeverageField from "@/components/LeverageField";
+import MarketDetails from "@/components/MarketDetails";
+import MarketIcon from "@/components/MarketIcon";
 import MarketTitle from "@/components/MarketTitle";
-import Token from "@/components/Token";
+import PositionApy from "@/components/PositionApy";
 import {
 	type GetAssetMarketsQuery,
 	useGetAssetMarketsQuery,
 } from "@/graphql/GetAssetMarkets.query.generated";
-import type { Asset } from "@/graphql/types";
+import type { Asset, MarketWarning } from "@/graphql/types";
 import { useLocalStorage } from "@/localStorage";
-import {
-	getNextQuoteAsset,
-	type quoteAssets,
-	usePositionApy,
-	usePositionDetails,
-} from "@/position";
+import { usePositionDetails } from "@/position";
 import { type AssetYields, useAssetYields } from "@/yield";
+import DangerousIcon from "@mui/icons-material/Dangerous";
 import Button from "@mui/material/Button";
-import Tooltip from "@mui/material/Tooltip";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
 import React from "react";
 import { type Hex, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
 
 const defaultMaxLeverage = 1 / (1 - 0.985);
 const assetKey = "selectedAsset";
-const marketKey = "selectedMarket";
+
+const MarketItem = React.memo(
+	({
+		market,
+		amount,
+		leverage,
+		collateralYields,
+		onClick,
+		description,
+	}: {
+		market: NonNullable<GetAssetMarketsQuery["markets"]["items"]>[number] & {
+			collateralAsset: Pick<Asset, "address">;
+			collateralPrice: bigint;
+		};
+		amount: bigint;
+		leverage: number;
+		collateralYields?: AssetYields;
+		onClick?: React.MouseEventHandler<HTMLDivElement>;
+		description?: React.ReactNode;
+	}) => {
+		const { targetLoan, targetCollateralValue } = usePositionDetails({
+			market,
+			balance: amount,
+			leverage,
+		});
+
+		return (
+			<ListItem
+				secondaryAction={
+					<PositionApy
+						market={market} // TODO: use target borrow APY
+						collateralValue={targetCollateralValue}
+						borrowAssets={targetLoan}
+						collateralYields={collateralYields}
+					/>
+				}
+				disablePadding
+			>
+				<ListItemButton onClick={onClick}>
+					<ListItemIcon>
+						<MarketIcon market={market} />
+					</ListItemIcon>
+					<ListItemText
+						primary={<MarketTitle market={market} />}
+						secondary={description}
+						primaryTypographyProps={{ component: "div" }}
+						secondaryTypographyProps={{ component: "div" }}
+						sx={{ marginLeft: 1 }}
+					/>
+				</ListItemButton>
+			</ListItem>
+		);
+	},
+);
 
 const MarketOption = React.memo(
 	({
@@ -55,107 +114,35 @@ const MarketOption = React.memo(
 		leverage: number;
 		collateralYields?: AssetYields;
 	}) => {
-		const {
-			targetBalance,
-			resultLtv,
-			targetCollateral,
-			targetLoan,
-			targetCollateralValue,
-		} = usePositionDetails({
+		const { targetLoan, targetCollateralValue } = usePositionDetails({
 			market,
-			balance: amount,
+			balance:
+				amount === 0n
+					? parseUnits("1", market.collateralAsset.decimals)
+					: amount,
 			leverage,
 		});
 
-		const positionApy = usePositionApy(
-			targetCollateralValue,
-			targetLoan,
-			collateralYields?.apy,
-			market.state?.borrowApy, // TODO: use targetBorrowApy
-		);
-		const dailyPositionApy = usePositionApy(
-			targetCollateralValue,
-			targetLoan,
-			collateralYields?.dailyApy,
-			market.dailyApys?.borrowApy,
-		);
-		const weeklyPositionApy = usePositionApy(
-			targetCollateralValue,
-			targetLoan,
-			collateralYields?.weeklyApy,
-			market.weeklyApys?.borrowApy,
-		);
-		const monthlyPositionApy = usePositionApy(
-			targetCollateralValue,
-			targetLoan,
-			collateralYields?.monthlyApy,
-			market.monthlyApys?.borrowApy,
-		);
-
 		return (
-			<ToggleButton
-				key={market.id}
-				value={market.uniqueKey}
-				sx={{ padding: 0 }}
+			<Stack
+				direction="row"
+				justifyContent="space-between"
+				alignItems="center"
+				flex={1}
 			>
-				<Stack
-					direction="row"
-					justifyContent="space-between"
-					alignItems="center"
-					flex={1}
-				>
-					<MarketTitle market={market} variant="subtitle1" />
-					<Stack marginRight={2}>
-						<Tooltip
-							placement="top"
-							title={
-								<Stack direction="row" justifyContent="space-between">
-									<Stack alignItems="end">
-										<Typography variant="caption">30d</Typography>
-										<Typography variant="caption">7d</Typography>
-										<Typography variant="caption">1d</Typography>
-									</Stack>
-									<Stack ml={2}>
-										<Typography variant="body2">
-											{monthlyPositionApy
-												? (monthlyPositionApy * 100).toFixed(2)
-												: 0}
-											%
-										</Typography>
-										<Typography variant="body2">
-											{weeklyPositionApy
-												? (weeklyPositionApy * 100).toFixed(2)
-												: 0}
-											%
-										</Typography>
-										<Typography variant="body2">
-											{dailyPositionApy
-												? (dailyPositionApy * 100).toFixed(2)
-												: 0}
-											%
-										</Typography>
-									</Stack>
-								</Stack>
-							}
-						>
-							<Typography variant="subtitle1">
-								{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-							</Typography>
-						</Tooltip>
-					</Stack>
+				<MarketDetails market={market} variant="subtitle1" />
+				<Stack marginRight={2}>
+					<PositionApy
+						market={market} // TODO: use target borrow APY
+						collateralValue={targetCollateralValue}
+						borrowAssets={targetLoan}
+						collateralYields={collateralYields}
+					/>
 				</Stack>
-			</ToggleButton>
+			</Stack>
 		);
 	},
 );
-
-const hasCollateralAssetAndPrice = <
-	C extends {},
-	T extends { collateralAsset: C | null; collateralPrice: bigint | null },
->(
-	market: T,
-): market is T & { collateralAsset: C; collateralPrice: bigint } =>
-	market.collateralAsset != null && market.collateralPrice != null;
 
 const MarketOptions = React.memo(
 	({
@@ -193,26 +180,189 @@ const MarketOptions = React.memo(
 
 		const [selected, setSelected] = React.useState<Hex>();
 
+		const markets = data?.markets.items?.filter(
+			(
+				market,
+			): market is typeof market & {
+				collateralAsset: NonNullable<(typeof market)["collateralAsset"]>;
+				collateralPrice: bigint;
+			} =>
+				market.collateralAsset != null &&
+				market.collateralPrice != null &&
+				!market.warnings?.some(
+					({ type }) => type === "incorrect_loan_exchange_rate",
+				),
+		);
+
+		const [showMore, setShowMore] = React.useState(false);
+
+		const marketsInsufficientLltv = markets?.filter(
+			(market) => 1 / (1 - market.lltv.toWadFloat()) < leverage,
+		);
+		const marketsWarnings = markets?.map((market) => ({
+			...market,
+			yellowWarning: market.warnings?.find(({ level }) => level === "YELLOW"),
+			redWarning: market.warnings?.find(({ level }) => level === "RED"),
+		}));
+		const marketsNoRedWarnings = marketsWarnings?.filter(
+			(market): market is typeof market & { redWarning: undefined } =>
+				market.redWarning == null,
+		);
+		const marketsYellowWarnings = marketsNoRedWarnings?.filter(
+			(market): market is typeof market & { yellowWarning: MarketWarning } =>
+				market.yellowWarning != null,
+		);
+		const marketsRedWarnings = marketsWarnings?.filter(
+			(market): market is typeof market & { redWarning: MarketWarning } =>
+				market.redWarning != null,
+		);
+
 		return (
-			<ToggleButtonGroup
-				orientation="vertical"
-				value={selected}
-				exclusive
-				onChange={(_, value) => setSelected(value)}
-			>
-				{data?.markets.items
-					?.filter(hasCollateralAssetAndPrice)
-					.filter((market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage)
-					.map((market, i) => (
-						<MarketOption
-							key={market.id}
-							market={market}
-							amount={amount}
-							leverage={leverage}
-							collateralYields={collateralYields}
-						/>
-					))}
-			</ToggleButtonGroup>
+			<Stack marginTop={2} spacing={2}>
+				<ToggleButtonGroup
+					orientation="vertical"
+					value={selected}
+					exclusive
+					onChange={(_, value) => setSelected(value)}
+				>
+					{marketsNoRedWarnings
+						?.filter((market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage)
+						.map((market, i) => (
+							<ToggleButton
+								key={market.id}
+								value={market.uniqueKey}
+								sx={{ padding: 0 }}
+							>
+								<MarketOption
+									market={market}
+									amount={amount}
+									leverage={leverage}
+									collateralYields={collateralYields}
+								/>
+							</ToggleButton>
+						))}
+				</ToggleButtonGroup>
+				<Button onClick={() => setShowMore(true)} color="info">
+					Show more
+				</Button>
+
+				<Dialog
+					open={showMore}
+					onClose={() => setShowMore(false)}
+					maxWidth="xs"
+					fullWidth
+				>
+					<Stack
+						direction="row"
+						justifyContent="space-between"
+						alignItems="center"
+					>
+						<DialogTitle>All markets</DialogTitle>
+						<IconButton
+							aria-label="close"
+							onClick={() => setShowMore(false)}
+							sx={{ marginRight: 1 }}
+						>
+							<CloseIcon />
+						</IconButton>
+					</Stack>
+					<DialogContent sx={{ padding: 0 }} dividers>
+						{!!marketsInsufficientLltv?.length && (
+							<List
+								subheader={
+									<ListSubheader>
+										Markets with insufficient leverage
+									</ListSubheader>
+								}
+							>
+								{marketsInsufficientLltv.map((market) => (
+									<MarketItem
+										key={market.uniqueKey}
+										market={market}
+										amount={amount}
+										leverage={leverage}
+										collateralYields={collateralYields}
+										onClick={() => {
+											setSelected(market.uniqueKey);
+											setShowMore(false);
+										}}
+									/>
+								))}
+							</List>
+						)}
+						{!!marketsYellowWarnings?.length && (
+							<List
+								subheader={
+									<ListSubheader
+										component={Typography}
+										sx={(theme) => ({ color: theme.palette.warning.main })}
+									>
+										<DangerousIcon sx={{ marginRight: 1 }} />
+										Markets with yellow warnings
+									</ListSubheader>
+								}
+							>
+								{marketsYellowWarnings.map((market) => (
+									<MarketItem
+										key={market.uniqueKey}
+										market={market}
+										amount={amount}
+										leverage={leverage}
+										collateralYields={collateralYields}
+										onClick={() => {
+											setSelected(market.uniqueKey);
+											setShowMore(false);
+										}}
+										description={
+											<Typography
+												variant="caption"
+												sx={(theme) => ({ color: theme.palette.warning.main })}
+											>
+												{market.yellowWarning.type.replaceAll("_", " ")}
+											</Typography>
+										}
+									/>
+								))}
+							</List>
+						)}
+						{!!marketsRedWarnings?.length && (
+							<List
+								subheader={
+									<ListSubheader
+										component={Typography}
+										sx={(theme) => ({ color: theme.palette.error.main })}
+									>
+										<DangerousIcon sx={{ marginRight: 1 }} />
+										Markets with red warnings
+									</ListSubheader>
+								}
+							>
+								{marketsRedWarnings.map((market) => (
+									<MarketItem
+										key={market.uniqueKey}
+										market={market}
+										amount={amount}
+										leverage={leverage}
+										collateralYields={collateralYields}
+										onClick={() => {
+											setSelected(market.uniqueKey);
+											setShowMore(false);
+										}}
+										description={
+											<Typography
+												variant="caption"
+												sx={(theme) => ({ color: theme.palette.error.main })}
+											>
+												{market.redWarning.type.replaceAll("_", " ")}
+											</Typography>
+										}
+									/>
+								))}
+							</List>
+						)}
+					</DialogContent>
+				</Dialog>
+			</Stack>
 		);
 	},
 );
@@ -325,14 +475,12 @@ export default function Home() {
 					</Stack>
 
 					{asset && amount != null && (
-						<Stack marginTop={2}>
-							<MarketOptions
-								asset={asset}
-								amount={amount}
-								leverage={leverageField}
-								setMaxLeverage={setMaxLeverage}
-							/>
-						</Stack>
+						<MarketOptions
+							asset={asset}
+							amount={amount}
+							leverage={leverageField}
+							setMaxLeverage={setMaxLeverage}
+						/>
 					)}
 				</Stack>
 			</Paper>

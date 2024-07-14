@@ -43,6 +43,10 @@ query getAssetMarkets($asset: String!, $chainId: Int!) {
         borrowApy
         netBorrowApy
       }
+      warnings {
+        type
+        level
+      }
     }
   }
 }

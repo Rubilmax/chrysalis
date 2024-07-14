@@ -120,6 +120,7 @@ const theme = createTheme({
 			styleOverrides: {
 				root: {
 					borderRadius: 6,
+					padding: 0,
 				},
 			},
 		},
@@ -134,7 +135,7 @@ const theme = createTheme({
 			variants: [
 				{
 					props: { size: "square" },
-					style: { padding: "0.2em", borderRadius: 4 },
+					style: { padding: "0.15em", borderRadius: 4 },
 				},
 			],
 		},

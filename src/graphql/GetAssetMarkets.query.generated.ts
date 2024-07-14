@@ -63,6 +63,11 @@ export type GetAssetMarketsQuery = {
 				borrowApy: number;
 				netBorrowApy: number | null;
 			} | null;
+			warnings: Array<{
+				__typename?: "MarketWarning";
+				type: string;
+				level: Types.WarningLevel;
+			}> | null;
 		}> | null;
 	};
 };
@@ -112,6 +117,10 @@ export const GetAssetMarketsDocument = gql`
       state {
         borrowApy
         netBorrowApy
+      }
+      warnings {
+        type
+        level
       }
     }
   }
