@@ -13,6 +13,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 
+import Apy from "@/components/Apy";
 import AssetSelect, { type AssetOption } from "@/components/AssetSelect";
 import LeverageField from "@/components/LeverageField";
 import MarketDetails from "@/components/MarketDetails";
@@ -132,13 +133,26 @@ const MarketOption = React.memo(
 				alignItems="center"
 				flex={1}
 			>
-				<MarketDetails market={market} variant="subtitle1" />
-				<Stack marginRight={2}>
+				<MarketDetails
+					market={{ ...market, collateralAsset: null }}
+					variant="subtitle1"
+				/>
+				<Stack alignItems="flex-end" marginRight={2}>
 					<PositionApy
+						placement="right"
 						market={market} // TODO: use target borrow APY
 						collateralValue={targetCollateralValue}
 						borrowAssets={targetLoan}
 						collateralYields={collateralYields}
+					/>
+					<Apy
+						variant="caption"
+						placement="right"
+						title="The underlying market's borrow APY"
+						apy={market.state?.borrowApy}
+						dailyApy={market.dailyApys?.borrowApy}
+						weeklyApy={market.weeklyApys?.borrowApy}
+						monthlyApy={market.monthlyApys?.borrowApy}
 					/>
 				</Stack>
 			</Stack>
@@ -198,7 +212,6 @@ const MarketOptions = React.memo(
 		const selectedMarket = markets?.find(
 			(market) => market.uniqueKey === selectedId,
 		);
-		console.log(selectedId, selectedMarket);
 
 		const [showMore, setShowMore] = React.useState(false);
 
@@ -246,7 +259,7 @@ const MarketOptions = React.memo(
 					<>
 						<Stack direction="row" justifyContent="space-between">
 							<Typography variant="subtitle2">
-								{selectedMarket ? "Selected market" : "Recommended markets"}
+								{selectedMarket ? "Selected loan" : "Recommended loans"}
 							</Typography>
 							<Button
 								onClick={() => setShowMore(true)}

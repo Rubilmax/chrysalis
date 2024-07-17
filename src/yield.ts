@@ -137,9 +137,15 @@ export const useAssetYields = (address: Address) => {
 							const blockNumbers = [
 								blockNumber,
 								blockNumber -
-									BigInt(Math.ceil((1.5 * dayInSeconds) / blockDelay)),
-								blockNumber - BigInt(Math.ceil(weekInSeconds / blockDelay)),
-								blockNumber - BigInt(Math.ceil(monthInSeconds / blockDelay)),
+									BigInt(Math.ceil((2 * dayInSeconds) / blockDelay)),
+								blockNumber -
+									BigInt(
+										Math.ceil((weekInSeconds + dayInSeconds) / blockDelay),
+									),
+								blockNumber -
+									BigInt(
+										Math.ceil((monthInSeconds + dayInSeconds) / blockDelay),
+									),
 							];
 
 							const [asset, now, daysAgo, weekAgo, monthAgo] =
@@ -223,17 +229,17 @@ export const useAssetYields = (address: Address) => {
 							if (value2DAgo > 0n)
 								yields.apy = yields.dailyApy =
 									(1 + (value - value2DAgo).wadDiv(value2DAgo).toWadFloat()) **
-										(yearInSeconds / (1.5 * dayInSeconds)) -
+										(yearInSeconds / (2 * dayInSeconds)) -
 									1;
 							if (value1WAgo > 0n)
 								yields.weeklyApy =
 									(1 + (value - value1WAgo).wadDiv(value1WAgo).toWadFloat()) **
-										(yearInSeconds / weekInSeconds) -
+										(yearInSeconds / (weekInSeconds + dayInSeconds)) -
 									1;
 							if (value1MAgo > 0n)
 								yields.monthlyApy =
 									(1 + (value - value1MAgo).wadDiv(value1MAgo).toWadFloat()) **
-										(yearInSeconds / monthInSeconds) -
+										(yearInSeconds / (monthInSeconds + dayInSeconds)) -
 									1;
 						}
 

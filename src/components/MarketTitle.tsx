@@ -32,8 +32,8 @@ const MarketTitle = ({
 	return (
 		<Stack direction="row" alignItems="center">
 			<Typography {...props}>
-				{market.collateralAsset?.symbol ?? "Unknown"} /{" "}
-				{market.loanAsset.symbol}
+				{(market.collateralAsset ? `${market.collateralAsset.symbol} / ` : "") +
+					market.loanAsset.symbol}
 			</Typography>
 			<Chip
 				size="small"
