@@ -19,6 +19,7 @@ import MarketDetails from "@/components/MarketDetails";
 import MarketIcon from "@/components/MarketIcon";
 import MarketTitle from "@/components/MarketTitle";
 import PositionApy from "@/components/PositionApy";
+import { parseNumber } from "@/format";
 import {
 	type GetAssetMarketsQuery,
 	useGetAssetMarketsQuery,
@@ -29,6 +30,7 @@ import { usePositionDetails } from "@/position";
 import { type AssetYields, useAssetYields } from "@/yield";
 import DangerousIcon from "@mui/icons-material/Dangerous";
 import Button from "@mui/material/Button";
+import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -178,7 +180,7 @@ const MarketOptions = React.memo(
 			);
 		}, [data?.markets.items, setMaxLeverage]);
 
-		const [selected, setSelected] = React.useState<Hex>();
+		const [selectedId, setSelectedId] = React.useState<Hex>();
 
 		const markets = data?.markets.items?.filter(
 			(
@@ -193,6 +195,10 @@ const MarketOptions = React.memo(
 					({ type }) => type === "incorrect_loan_exchange_rate",
 				),
 		);
+		const selectedMarket = markets?.find(
+			(market) => market.uniqueKey === selectedId,
+		);
+		console.log(selectedId, selectedMarket);
 
 		const [showMore, setShowMore] = React.useState(false);
 
@@ -201,7 +207,8 @@ const MarketOptions = React.memo(
 		);
 		const marketsWarnings = markets?.map((market) => ({
 			...market,
-			yellowWarning: market.warnings?.find(({ level }) => level === "YELLOW"),
+			yellowWarnings:
+				market.warnings?.filter(({ level }) => level === "YELLOW") ?? [],
 			redWarning: market.warnings?.find(({ level }) => level === "RED"),
 		}));
 		const marketsNoRedWarnings = marketsWarnings?.filter(
@@ -209,41 +216,110 @@ const MarketOptions = React.memo(
 				market.redWarning == null,
 		);
 		const marketsYellowWarnings = marketsNoRedWarnings?.filter(
-			(market): market is typeof market & { yellowWarning: MarketWarning } =>
-				market.yellowWarning != null,
+			({ yellowWarnings }) => yellowWarnings.length > 0,
 		);
 		const marketsRedWarnings = marketsWarnings?.filter(
 			(market): market is typeof market & { redWarning: MarketWarning } =>
 				market.redWarning != null,
 		);
 
+		// const displayedMarkets = marketsNoRedWarnings?.concat(
+		// 	selectedMarket
+		// 		? [
+		// 				{
+		// 					...selectedMarket,
+		// 					yellowWarnings:
+		// 						selectedMarket.warnings?.filter(
+		// 							({ level }) => level === "YELLOW",
+		// 						) ?? [],
+		// 					redWarning: selectedMarket.warnings?.find(
+		// 						({ level }) => level === "RED",
+		// 					),
+		// 				},
+		// 			]
+		// 		: [],
+		// );
+
 		return (
 			<Stack marginTop={2} spacing={2}>
-				<ToggleButtonGroup
-					orientation="vertical"
-					value={selected}
-					exclusive
-					onChange={(_, value) => setSelected(value)}
-				>
-					{marketsNoRedWarnings
-						?.filter((market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage)
-						.map((market, i) => (
-							<ToggleButton
-								key={market.id}
-								value={market.uniqueKey}
-								sx={{ padding: 0 }}
+				{amount && (
+					<>
+						<Stack direction="row" justifyContent="space-between">
+							<Typography variant="subtitle2">
+								{selectedMarket ? "Selected market" : "Recommended markets"}
+							</Typography>
+							<Button
+								onClick={() => setShowMore(true)}
+								color="inherit"
+								size="small"
+								sx={{ fontSize: 12 }}
 							>
-								<MarketOption
-									market={market}
-									amount={amount}
-									leverage={leverage}
-									collateralYields={collateralYields}
-								/>
-							</ToggleButton>
-						))}
-				</ToggleButtonGroup>
-				<Button onClick={() => setShowMore(true)} color="info">
-					Show more
+								Show more
+							</Button>
+						</Stack>
+						<ToggleButtonGroup
+							orientation="vertical"
+							value={selectedId}
+							exclusive
+							onChange={(_, value) => setSelectedId(value)}
+						>
+							{marketsNoRedWarnings
+								?.filter(
+									(market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage,
+								)
+								.map((market, i) => (
+									<Collapse
+										key={market.id}
+										in={!selectedMarket || selectedId === market.uniqueKey}
+										appear
+									>
+										<ToggleButton
+											value={market.uniqueKey}
+											sx={{ width: "100%", padding: 0 }}
+										>
+											<MarketOption
+												market={market}
+												amount={amount}
+												leverage={leverage}
+												collateralYields={collateralYields}
+											/>
+										</ToggleButton>
+									</Collapse>
+								))}
+						</ToggleButtonGroup>
+
+						{selectedMarket && (
+							<Stack direction="row" justifyContent="space-between">
+								<Stack alignItems="start">
+									<Typography variant="body2">Price tolerance</Typography>
+								</Stack>
+								<Stack alignItems="end">
+									<Typography variant="body2">
+										{(
+											BigInt.WAD -
+											parseNumber(1 - 1 / leverage).wadDivDown(
+												selectedMarket.lltv,
+											)
+										).format(16, 2)}
+										%
+									</Typography>
+								</Stack>
+							</Stack>
+						)}
+					</>
+				)}
+
+				<Button
+					variant="contained"
+					color="primary"
+					sx={{ paddingTop: 1.5, paddingBottom: 1.5 }}
+					disabled={!amount || !selectedMarket}
+				>
+					{amount === 0n
+						? "Enter an amount"
+						: !selectedMarket
+							? "Select a market"
+							: "Deposit"}
 				</Button>
 
 				<Dialog
@@ -283,7 +359,7 @@ const MarketOptions = React.memo(
 										leverage={leverage}
 										collateralYields={collateralYields}
 										onClick={() => {
-											setSelected(market.uniqueKey);
+											setSelectedId(market.uniqueKey);
 											setShowMore(false);
 										}}
 									/>
@@ -310,7 +386,7 @@ const MarketOptions = React.memo(
 										leverage={leverage}
 										collateralYields={collateralYields}
 										onClick={() => {
-											setSelected(market.uniqueKey);
+											setSelectedId(market.uniqueKey);
 											setShowMore(false);
 										}}
 										description={
@@ -318,7 +394,9 @@ const MarketOptions = React.memo(
 												variant="caption"
 												sx={(theme) => ({ color: theme.palette.warning.main })}
 											>
-												{market.yellowWarning.type.replaceAll("_", " ")}
+												{market.yellowWarnings
+													.map(({ type }) => type.replaceAll("_", " "))
+													.join(", ")}
 											</Typography>
 										}
 									/>
@@ -345,7 +423,7 @@ const MarketOptions = React.memo(
 										leverage={leverage}
 										collateralYields={collateralYields}
 										onClick={() => {
-											setSelected(market.uniqueKey);
+											setSelectedId(market.uniqueKey);
 											setShowMore(false);
 										}}
 										description={

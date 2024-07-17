@@ -1,6 +1,7 @@
 import type { MarketApyAggregates, MarketState } from "@/graphql/types";
 import { usePositionApy } from "@/position";
 import type { AssetYields } from "@/yield";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography, { type TypographyProps } from "@mui/material/Typography";
@@ -76,9 +77,11 @@ const PositionApy = ({
 				</Stack>
 			}
 		>
-			<Typography {...props}>
-				{positionApy ? (positionApy * 100).toFixed(2) : 0}%
-			</Typography>
+			{positionApy != null ? (
+				<Typography {...props}>{(positionApy * 100).toFixed(2)}%</Typography>
+			) : (
+				<Skeleton height={40} width={60} />
+			)}
 		</Tooltip>
 	);
 };
