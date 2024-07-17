@@ -137,7 +137,7 @@ export const useAssetYields = (address: Address) => {
 							const blockNumbers = [
 								blockNumber,
 								blockNumber -
-									BigInt(Math.ceil((2 * dayInSeconds) / blockDelay)),
+									BigInt(Math.ceil((3 * dayInSeconds) / blockDelay)),
 								blockNumber -
 									BigInt(
 										Math.ceil((weekInSeconds + dayInSeconds) / blockDelay),
@@ -185,7 +185,7 @@ export const useAssetYields = (address: Address) => {
 
 							// All of these are guaranteed to be defined thanks to the "0n" fallback value.
 							const value = now!.find(isDefined)!;
-							const value2DAgo = daysAgo!.find(isDefined)!;
+							const value3DAgo = daysAgo!.find(isDefined)!;
 							const value1WAgo = weekAgo!.find(isDefined)!;
 							const value1MAgo = monthAgo!.find(isDefined)!;
 
@@ -226,10 +226,10 @@ export const useAssetYields = (address: Address) => {
 								};
 							}
 
-							if (value2DAgo > 0n)
+							if (value3DAgo > 0n)
 								yields.apy = yields.dailyApy =
-									(1 + (value - value2DAgo).wadDiv(value2DAgo).toWadFloat()) **
-										(yearInSeconds / (2 * dayInSeconds)) -
+									(1 + (value - value3DAgo).wadDiv(value3DAgo).toWadFloat()) **
+										(yearInSeconds / (3 * dayInSeconds)) -
 									1;
 							if (value1WAgo > 0n)
 								yields.weeklyApy =

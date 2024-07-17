@@ -70,7 +70,7 @@ const NavBar = () => {
 		isPending || (receipt.isPending && receipt.fetchStatus !== "idle");
 
 	return (
-		<AppBar position="static" elevation={0} color="transparent">
+		<AppBar position="sticky" elevation={0} color="transparent">
 			<Toolbar>
 				<Link href="/">
 					<Image src="/logo-light.svg" alt="Logo" width={32} height={32} />

@@ -52,7 +52,7 @@ export default function RootLayout({ children }: React.PropsWithChildren) {
 						position="relative"
 					>
 						<TopLoader />
-						<Stack flex={3} mt={10}>
+						<Stack flex={3} mt={10} mb={10}>
 							<Container maxWidth="md">{children}</Container>
 						</Stack>
 					</Stack>
