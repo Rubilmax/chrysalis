@@ -71,12 +71,14 @@ const PositionContent = ({
 	);
 
 	const ltv = React.useMemo(() => {
+		if (borrowAssets === 0n) return 0n;
 		if (collateralValue === 0n) return maxUint256;
 
 		return borrowAssets.wadDiv(collateralValue);
 	}, [borrowAssets, collateralValue]);
 
 	const leverage = React.useMemo(() => {
+		if (collateralValue === 0n) return 1;
 		if (collateralValue === borrowAssets) return Number.POSITIVE_INFINITY;
 
 		return collateralValue.wadDiv(collateralValue - borrowAssets).toWadFloat();

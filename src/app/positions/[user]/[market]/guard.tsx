@@ -1,5 +1,6 @@
 "use client";
 
+import MarketDetails from "@/components/MarketDetails";
 import { useGetUserMarketPositionQuery } from "@/graphql/GetMarketPosition.query.generated";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
@@ -30,7 +31,7 @@ const Page = React.memo(({ user, market }: { user: Address; market: Hex }) => {
 	return (
 		data?.marketPosition && (
 			<Paper variant="transparent">
-				<MarketTitle market={data.marketPosition.market} />
+				<MarketDetails market={data.marketPosition.market} />
 				<Divider />
 				{data.marketPosition.market.collateralAsset &&
 				data.marketPosition.market.collateralPrice != null ? (

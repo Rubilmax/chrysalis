@@ -8,12 +8,7 @@ import MarketTitle from "./MarketTitle";
 
 const MarketDetails = (props: MarketTitleProps) => {
 	return (
-		<Stack
-			direction="row"
-			justifyContent="space-between"
-			alignItems="center"
-			padding={2}
-		>
+		<Stack direction="row" alignItems="center" padding={2}>
 			<MarketIcon market={props.market} sx={{ marginRight: 1 }} />
 			<MarketTitle variant="h5" {...props} />
 		</Stack>

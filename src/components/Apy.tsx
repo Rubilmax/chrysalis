@@ -85,7 +85,7 @@ const Apy = ({
 			{apy != null ? (
 				<Typography {...props}>{(apy * 100).toFixed(2)}%</Typography>
 			) : (
-				<Skeleton height={40} width={60} />
+				<Skeleton height={25} width={60} />
 			)}
 		</Tooltip>
 	);

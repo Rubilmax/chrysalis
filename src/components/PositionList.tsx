@@ -18,6 +18,7 @@ import React from "react";
 import { type Address, parseUnits } from "viem";
 import { useChainId } from "wagmi";
 import MarketIcon from "./MarketIcon";
+import PositionApy from "./PositionApy";
 
 type QueryPosition =
 	GetUserMarketPositionSummariesQuery["userByAddress"]["marketPositions"][number];
@@ -60,13 +61,6 @@ const PositionItem = React.memo(
 			[collateralValue, borrowAssets, market.loanAsset.priceUsd],
 		);
 
-		const positionApy = usePositionApy(
-			collateralValue,
-			borrowAssets,
-			collateralYields?.apy,
-			market.state?.borrowApy,
-		);
-
 		return (
 			<ListItem
 				secondaryAction={
@@ -74,13 +68,14 @@ const PositionItem = React.memo(
 						<Typography variant="subtitle1">
 							${usdBalance.formatWad(2)}
 						</Typography>
-						{isFetching || positionApy == null ? (
-							<Skeleton height={40} width={60} />
-						) : (
-							<Typography variant="subtitle2" color="text.secondary">
-								{(positionApy * 100).toFixed(2)} %
-							</Typography>
-						)}
+						<PositionApy
+							variant="subtitle2"
+							color="text.secondary"
+							market={market}
+							collateralValue={collateralValue}
+							borrowAssets={borrowAssets}
+							collateralYields={collateralYields}
+						/>
 					</Stack>
 				}
 				disablePadding
@@ -103,9 +98,10 @@ const PositionItem = React.memo(
 	},
 );
 
-const hasCollateralAssetAndPrice = <
+const isOpenPosition = <
 	C extends {},
 	T extends {
+		borrowShares: bigint;
 		market: { collateralAsset: C | null; collateralPrice: bigint | null };
 	},
 >(
@@ -117,7 +113,8 @@ const hasCollateralAssetAndPrice = <
 	};
 } =>
 	position.market.collateralAsset != null &&
-	position.market.collateralPrice != null;
+	position.market.collateralPrice != null &&
+	position.borrowShares > 0n;
 
 const PositionList = ({ user }: { user: Address }) => {
 	const chainId = useChainId();
@@ -126,25 +123,42 @@ const PositionList = ({ user }: { user: Address }) => {
 		variables: { user, chainId },
 	});
 
+	const displayedPositions =
+		data?.userByAddress.marketPositions.filter(isOpenPosition);
+
 	return (
-		<List subheader={<ListSubheader>Positions</ListSubheader>}>
-			{loading
-				? new Array(3)
-						.fill(null)
-						.map((_, i) => i)
-						.map((i) => (
-							<ListItem key={i} disablePadding>
-								<Skeleton height={200} />
-							</ListItem>
-						))
-				: data?.userByAddress.marketPositions
-						.filter(hasCollateralAssetAndPrice)
-						.map((position) => (
-							<PositionItem
-								key={user + position.market.uniqueKey}
-								position={position}
-							/>
-						))}
+		<List subheader={<ListSubheader>Open positions</ListSubheader>}>
+			{error ? (
+				<ListItem>
+					<Typography variant="body2" color="error">
+						There was an error fetching your positions.
+					</Typography>
+				</ListItem>
+			) : loading || !displayedPositions ? (
+				new Array(3)
+					.fill(null)
+					.map((_, i) => i)
+					.map((i) => (
+						<Skeleton
+							key={i}
+							height={90}
+							sx={{ width: "100%", marginBottom: 1 }}
+						/>
+					))
+			) : displayedPositions.length > 0 ? (
+				displayedPositions.map((position) => (
+					<PositionItem
+						key={user + position.market.uniqueKey}
+						position={position}
+					/>
+				))
+			) : (
+				<ListItem>
+					<Typography variant="subtitle2" color="text.disabled">
+						You don't have any open position.
+					</Typography>
+				</ListItem>
+			)}
 		</List>
 	);
 };

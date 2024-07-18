@@ -134,7 +134,7 @@ const AssetSelect = ({
 	const [searchField, setSearchField] = React.useState("");
 	const search = useDebounce(searchField, 300);
 
-	if (!asset) return <Skeleton height={60} width={120} />;
+	if (!asset) return <Skeleton height={35} width={120} />;
 
 	const filteredAssets = assets?.items?.filter(
 		(asset) =>

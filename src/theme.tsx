@@ -124,6 +124,13 @@ const theme = createTheme({
 				},
 			},
 		},
+		MuiSkeleton: {
+			styleOverrides: {
+				root: {
+					transform: "none",
+				},
+			},
+		},
 		MuiSvgIcon: {
 			styleOverrides: {
 				root: {
