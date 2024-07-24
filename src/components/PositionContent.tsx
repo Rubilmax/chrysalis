@@ -1,7 +1,9 @@
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
-import { useEthersProvider } from "@/ethers";
-import { usePositionApy, usePositionDetails } from "@/position";
-import { type BestSwapParams, fetchBestSwap } from "@/swap";
+import {
+	useGetPositionTx,
+	usePositionApy,
+	usePositionDetails,
+} from "@/position";
 import { useDeployContract } from "@/wagmi";
 import { useSendTransaction } from "@/wagmi";
 import { useAssetYields } from "@/yield";
@@ -16,10 +18,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
-import { ExecutorEncoder } from "executooor";
 import React from "react";
-import { type Hex, encodeFunctionData, maxUint256, parseUnits } from "viem";
-import { useAccount } from "wagmi";
+import { maxUint256, parseUnits } from "viem";
 import type { Position } from "../app/positions/[user]/[market]/page";
 import LeverageField from "./LeverageField";
 import PositionSummary from "./PositionSummary";
@@ -50,10 +50,8 @@ const PositionContent = ({
 		request: { deployContract },
 		receipt,
 	} = useDeployContract();
-	const provider = useEthersProvider();
 	const { executor } = React.useContext(ExecutorContext);
 
-	const account = useAccount();
 	const { connected, sdk } = useSafeAppsSDK();
 
 	const collateralValue = React.useMemo(
@@ -147,6 +145,8 @@ const PositionContent = ({
 		: "";
 
 	const [isPreparing, setIsPreparing] = React.useState(false);
+
+	const getPositionTx = useGetPositionTx(position.market);
 
 	return (
 		<>
@@ -303,195 +303,16 @@ const PositionContent = ({
 					}
 					disableElevation
 					onClick={async () => {
+						if (targetCollateral == null || targetLoan == null) return;
+
 						setIsPreparing(true);
 
 						try {
-							if (
-								!account.address ||
-								account.chainId == null ||
-								targetCollateral == null ||
-								targetLoan == null
-							)
-								return;
-							if (!executor) return;
-
-							const marketParams = {
-								collateralToken: collateralAsset.address,
-								loanToken: loanAsset.address,
-								irm: market.irmAddress,
-								oracle: market.oracleAddress,
-								lltv: market.lltv,
-							};
-
-							const suppliedCollateral = targetCollateral - collateral;
-							const repaidAssets = borrowAssets - targetLoan;
-
-							const encoder = new ExecutorEncoder(executor.address, provider);
-
-							if (suppliedCollateral < 0n)
-								encoder.morphoBlueWithdrawCollateral(
-									market.morphoBlue.address,
-									marketParams,
-									-suppliedCollateral,
-									account.address,
-									executor.address,
-								);
-
-							if (repaidAssets < 0n)
-								encoder.morphoBlueBorrow(
-									market.morphoBlue.address,
-									marketParams,
-									-repaidAssets,
-									0n,
-									account.address,
-									executor.address,
-								);
-
-							const deleverage = repaidAssets > 0n && suppliedCollateral < 0n;
-							const leverage = repaidAssets < 0n && suppliedCollateral > 0n;
-
-							let params: BestSwapParams | undefined;
-							if (deleverage) {
-								// Repaying & withdrawing collateral: swap collateral for debt.
-								params = {
-									chainId: account.chainId,
-									src: collateralAsset.address,
-									dst: loanAsset.address,
-									from: executor.address,
-									amount: repaidAssets
-										.mulDivUp(parseUnits("1", 36), collateralPrice)
-										.wadMulUp(1_015000000000000000n),
-									slippage: 0.0025,
-								};
-							} else if (leverage) {
-								// Borrowing & supplying collateral: swap debt for collateral.
-								params = {
-									chainId: account.chainId,
-									src: loanAsset.address,
-									dst: collateralAsset.address,
-									from: executor.address,
-									amount: -repaidAssets,
-									slippage: 0.0025,
-								};
-							}
-
-							if (params != null) {
-								const swap = await fetchBestSwap(params);
-
-								if (swap.spender)
-									// TODO: check if allowance sufficient.
-									encoder.erc20Approve(params.src, swap.spender, params.amount);
-
-								encoder.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
-							}
-
-							if (suppliedCollateral > 0n) {
-								// TODO: check if allowance sufficient.
-								encoder.erc20Approve(
-									collateralAsset.address,
-									market.morphoBlue.address,
-									suppliedCollateral,
-								);
-
-								encoder.morphoBlueSupplyCollateral(
-									market.morphoBlue.address,
-									marketParams,
-									suppliedCollateral,
-									account.address,
-									encoder.flush(),
-								);
-							}
-
-							if (repaidAssets > 0n) {
-								if (targetLoan === 0n) {
-									// TODO: check if allowance sufficient.
-									encoder.erc20Approve(
-										loanAsset.address,
-										market.morphoBlue.address,
-										repaidAssets.wadMul(1_001000000000000000n),
-									);
-
-									encoder.morphoBlueRepay(
-										market.morphoBlue.address,
-										marketParams,
-										0n,
-										borrowShares,
-										account.address,
-										encoder.flush(),
-									);
-								} else {
-									// TODO: check if allowance sufficient.
-									encoder.erc20Approve(
-										loanAsset.address,
-										market.morphoBlue.address,
-										repaidAssets,
-									);
-
-									encoder.morphoBlueRepay(
-										market.morphoBlue.address,
-										marketParams,
-										repaidAssets,
-										0n,
-										account.address,
-										encoder.flush(),
-									);
-								}
-							}
-
-							if (deleverage && -suppliedCollateral > (params!.amount ?? 0n)) {
-								const remainingCollateral =
-									-suppliedCollateral - params!.amount;
-
-								// const swap = await fetchBestSwap({
-								// 	chainId: account.chainId,
-								// 	src: collateralAsset.address,
-								// 	dst: loanAsset.address,
-								// 	from: executor.address,
-								// 	amount: remainingCollateral,
-								// 	slippage: 0.0025,
-								// });
-
-								// if (swap.spender)
-								// 	// TODO: check if allowance sufficient.
-								// 	encoder.erc20Approve(
-								// 		collateralAsset.address,
-								// 		swap.spender,
-								// 		remainingCollateral,
-								// 	);
-
-								// encoder.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
-
-								encoder.erc20Transfer(
-									collateralAsset.address,
-									account.address,
-									remainingCollateral,
-								);
-							}
-
-							const tx = {
-								to: executor.address,
-								data: encodeFunctionData({
-									abi: [
-										{
-											inputs: [
-												{
-													internalType: "bytes[]",
-													name: "data",
-													type: "bytes[]",
-												},
-											],
-											name: "exec_606BaXt",
-											outputs: [],
-											stateMutability: "payable",
-											type: "function",
-										},
-									],
-									functionName: "exec_606BaXt",
-									args: [encoder.flush() as Hex[]],
-								}),
-								value: 0n,
-								gas: 500_000n, // TODO: add transport to simulate gas
-							};
+							const tx = await getPositionTx(
+								targetCollateral - collateral,
+								borrowAssets - targetLoan,
+								targetLoan === 0n ? borrowShares : undefined,
+							);
 
 							if (connected) {
 								sdk.txs.send({

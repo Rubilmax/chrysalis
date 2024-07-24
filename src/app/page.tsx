@@ -2,7 +2,7 @@
 
 import "evm-maths";
 
-import { useErc20Balance } from "@/wagmi";
+import { useErc20Balance, useSendTransaction } from "@/wagmi";
 import CloseIcon from "@mui/icons-material/Close";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -27,10 +27,12 @@ import {
 } from "@/graphql/GetAssetMarkets.query.generated";
 import type { Asset, MarketWarning } from "@/graphql/types";
 import { useLocalStorage } from "@/localStorage";
-import { usePositionDetails } from "@/position";
+import { useGetPositionTx, usePositionDetails } from "@/position";
+import { type BestSwapParams, fetchBestSwap } from "@/swap";
 import { type AssetYields, useAssetYields } from "@/yield";
 import DangerousIcon from "@mui/icons-material/Dangerous";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -41,9 +43,12 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
+import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
+import { ExecutorEncoder } from "executooor";
 import React from "react";
 import { type Hex, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
+import { ExecutorContext } from "./providers/ExecutorContext";
 
 const defaultMaxLeverage = 1 / (1 - 0.985);
 const assetKey = "selectedAsset";
@@ -172,7 +177,11 @@ const MarketOptions = React.memo(
 		leverage: number;
 		setMaxLeverage: React.Dispatch<React.SetStateAction<number>>;
 	}) => {
-		const chainId = useChainId();
+		const chainId = useChainId(); // TODO: check chainId === account.chainId
+		const { connected, sdk } = useSafeAppsSDK();
+		const {
+			request: { sendTransaction },
+		} = useSendTransaction();
 
 		const [collateralYields] = useAssetYields(asset.address);
 
@@ -253,6 +262,12 @@ const MarketOptions = React.memo(
 		// 		: [],
 		// );
 
+		const [isPreparing, setIsPreparing] = React.useState(false);
+
+		const getPositionTx = useGetPositionTx(selectedMarket);
+
+		const ltv = parseNumber(1 - 1 / leverage, 18);
+
 		return (
 			<Stack marginTop={2} spacing={2}>
 				{amount && (
@@ -308,12 +323,10 @@ const MarketOptions = React.memo(
 								</Stack>
 								<Stack alignItems="end">
 									<Typography variant="body2">
-										{(
-											BigInt.WAD -
-											parseNumber(1 - 1 / leverage).wadDivDown(
-												selectedMarket.lltv,
-											)
-										).format(16, 2)}
+										{(BigInt.WAD - ltv.wadDivDown(selectedMarket.lltv)).format(
+											16,
+											2,
+										)}
 										%
 									</Typography>
 								</Stack>
@@ -325,8 +338,42 @@ const MarketOptions = React.memo(
 				<Button
 					variant="contained"
 					color="primary"
-					sx={{ paddingTop: 1.5, paddingBottom: 1.5 }}
+					startIcon={
+						isPreparing && <CircularProgress color="inherit" size={16} />
+					}
+					onClick={async () => {
+						if (!amount || !selectedMarket) return;
+
+						setIsPreparing(true);
+
+						const collateral = amount.wadDivDown(BigInt.WAD - ltv);
+
+						try {
+							const tx = await getPositionTx(
+								collateral,
+								ltv.wadMulDown(
+									collateral.mulDivDown(
+										selectedMarket.collateralPrice,
+										parseUnits("1", 36),
+									),
+								),
+							);
+
+							if (connected) {
+								sdk.txs.send({
+									txs: [{ ...tx, value: `0x${tx.value.toString(16)}` }],
+								});
+							} else {
+								sendTransaction(tx);
+							}
+						} catch (error) {
+							console.error(error);
+						} finally {
+							setIsPreparing(false);
+						}
+					}}
 					disabled={!amount || !selectedMarket}
+					sx={{ paddingTop: 1.5, paddingBottom: 1.5 }}
 				>
 					{amount === 0n
 						? "Enter an amount"

@@ -1,9 +1,12 @@
-import { cbEthAbi, morphoOracleAbi } from "@/abis";
+import { blueOracleAbi } from "@morpho-org/blue-sdk-viem";
 import React from "react";
 import { type Address, erc20Abi, erc4626Abi } from "viem";
-import { useChainId, usePublicClient } from "wagmi";
+import { useChainId } from "wagmi";
+import { getBlockNumber, readContract } from "wagmi/actions";
 import { base, mainnet } from "wagmi/chains";
+import { cbEthAbi } from "./abis";
 import { isDefined } from "./utils";
+import { config } from "./wagmi";
 
 export const dayInSeconds = 24 * 60 * 60;
 export const weekInSeconds = 7 * dayInSeconds;
@@ -38,7 +41,6 @@ export const useAssetYields = (address: Address) => {
 	const [yields, setYields] = React.useState<AssetYields>();
 	const [isFetching, startTransition] = React.useTransition();
 
-	const client = usePublicClient();
 	const chainId = useChainId();
 
 	React.useEffect(() => {
@@ -131,8 +133,8 @@ export const useAssetYields = (address: Address) => {
 						};
 
 						const blockDelay = blockDelays[chainId];
-						if (client != null && blockDelay) {
-							const blockNumber = await client.getBlockNumber();
+						if (blockDelay) {
+							const blockNumber = await getBlockNumber(config);
 
 							const blockNumbers = [
 								blockNumber,
@@ -150,34 +152,28 @@ export const useAssetYields = (address: Address) => {
 
 							const [asset, now, daysAgo, weekAgo, monthAgo] =
 								await Promise.all([
-									client
-										.readContract({
-											address,
-											abi: yieldAbi,
-											functionName: "asset",
-											blockNumber,
-										})
-										.catch(() => undefined),
+									readContract(config, {
+										address,
+										abi: yieldAbi,
+										functionName: "asset",
+										blockNumber,
+									}).catch(() => undefined),
 									...blockNumbers.map(
 										async (blockNumber) =>
 											[
-												await client
-													.readContract({
-														address,
-														abi: yieldAbi,
-														functionName: "convertToAssets",
-														args: [BigInt.WAD],
-														blockNumber,
-													})
-													.catch(() => undefined),
-												await client
-													.readContract({
-														address,
-														abi: yieldAbi,
-														functionName: "exchangeRate",
-														blockNumber,
-													})
-													.catch(() => undefined),
+												await readContract(config, {
+													address,
+													abi: yieldAbi,
+													functionName: "convertToAssets",
+													args: [BigInt.WAD],
+													blockNumber,
+												}).catch(() => undefined),
+												await readContract(config, {
+													address,
+													abi: yieldAbi,
+													functionName: "exchangeRate",
+													blockNumber,
+												}).catch(() => undefined),
 												0n, // Fallback to zero.
 											] as const,
 									),
@@ -191,30 +187,24 @@ export const useAssetYields = (address: Address) => {
 
 							if (asset) {
 								const [symbol, name, decimals] = await Promise.all([
-									client
-										.readContract({
-											address: asset,
-											abi: erc20Abi,
-											functionName: "symbol",
-											blockNumber,
-										})
-										.catch(() => undefined),
-									client
-										.readContract({
-											address: asset,
-											abi: erc20Abi,
-											functionName: "name",
-											blockNumber,
-										})
-										.catch(() => undefined),
-									client
-										.readContract({
-											address: asset,
-											abi: erc20Abi,
-											functionName: "decimals",
-											blockNumber,
-										})
-										.catch(() => undefined),
+									readContract(config, {
+										address: asset,
+										abi: erc20Abi,
+										functionName: "symbol",
+										blockNumber,
+									}).catch(() => undefined),
+									readContract(config, {
+										address: asset,
+										abi: erc20Abi,
+										functionName: "name",
+										blockNumber,
+									}).catch(() => undefined),
+									readContract(config, {
+										address: asset,
+										abi: erc20Abi,
+										functionName: "decimals",
+										blockNumber,
+									}).catch(() => undefined),
 								]);
 
 								yields.underlying = {
@@ -259,7 +249,7 @@ export const useAssetYields = (address: Address) => {
 		return () => {
 			controller.abort("cleanup");
 		};
-	}, [address, client, chainId]);
+	}, [address, chainId]);
 
 	return [yields, isFetching] as const;
 };
@@ -275,15 +265,14 @@ export const useCollateralPrices = (oracle: Address) => {
 	const [prices, setPrices] = React.useState<AssetPrices>();
 	const [isFetching, startTransition] = React.useTransition();
 
-	const client = usePublicClient();
 	const chainId = useChainId();
 
 	React.useEffect(() => {
 		startTransition(() => {
 			(async () => {
 				const blockDelay = blockDelays[chainId];
-				if (client != null && blockDelay) {
-					const blockNumber = await client.getBlockNumber();
+				if (blockDelay) {
+					const blockNumber = await getBlockNumber(config);
 
 					const blockNumbers = [
 						blockNumber,
@@ -294,14 +283,12 @@ export const useCollateralPrices = (oracle: Address) => {
 
 					const [now, dayAgo, weekAgo, monthAgo] = await Promise.all(
 						blockNumbers.map((blockNumber) =>
-							client
-								.readContract({
-									address: oracle,
-									abi: morphoOracleAbi,
-									functionName: "price",
-									blockNumber,
-								})
-								.catch(() => 0n),
+							readContract(config, {
+								address: oracle,
+								abi: blueOracleAbi,
+								functionName: "price",
+								blockNumber,
+							}).catch(() => 0n),
 						),
 					);
 
@@ -314,7 +301,7 @@ export const useCollateralPrices = (oracle: Address) => {
 				}
 			})();
 		});
-	}, [oracle, client, chainId]);
+	}, [oracle, chainId]);
 
 	return [prices, isFetching] as const;
 };
