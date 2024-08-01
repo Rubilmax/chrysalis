@@ -42,6 +42,8 @@ query getAssetMarkets($asset: String!, $chainId: Int!) {
       state {
         borrowApy
         netBorrowApy
+        supplyAssets
+        borrowAssets
       }
       warnings {
         type

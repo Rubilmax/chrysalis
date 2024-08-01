@@ -28,7 +28,6 @@ import {
 import type { Asset, MarketWarning } from "@/graphql/types";
 import { useLocalStorage } from "@/localStorage";
 import { useGetPositionTx, usePositionDetails } from "@/position";
-import { type BestSwapParams, fetchBestSwap } from "@/swap";
 import { type AssetYields, useAssetYields } from "@/yield";
 import DangerousIcon from "@mui/icons-material/Dangerous";
 import Button from "@mui/material/Button";
@@ -43,12 +42,12 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
+import Skeleton from "@mui/material/Skeleton";
+import Tooltip from "@mui/material/Tooltip";
 import { useSafeAppsSDK } from "@safe-global/safe-apps-react-sdk";
-import { ExecutorEncoder } from "executooor";
 import React from "react";
 import { type Hex, parseUnits } from "viem";
 import { useAccount, useChainId } from "wagmi";
-import { ExecutorContext } from "./providers/ExecutorContext";
 
 const defaultMaxLeverage = 1 / (1 - 0.985);
 const assetKey = "selectedAsset";
@@ -61,6 +60,7 @@ const MarketItem = React.memo(
 		collateralYields,
 		onClick,
 		description,
+		disabled,
 	}: {
 		market: NonNullable<GetAssetMarketsQuery["markets"]["items"]>[number] & {
 			collateralAsset: Pick<Asset, "address">;
@@ -71,6 +71,7 @@ const MarketItem = React.memo(
 		collateralYields?: AssetYields;
 		onClick?: React.MouseEventHandler<HTMLDivElement>;
 		description?: React.ReactNode;
+		disabled?: React.ReactNode;
 	}) => {
 		const { targetLoan, targetCollateralValue } = usePositionDetails({
 			market,
@@ -90,18 +91,20 @@ const MarketItem = React.memo(
 				}
 				disablePadding
 			>
-				<ListItemButton onClick={onClick}>
-					<ListItemIcon>
-						<MarketIcon market={market} />
-					</ListItemIcon>
-					<ListItemText
-						primary={<MarketTitle market={market} />}
-						secondary={description}
-						primaryTypographyProps={{ component: "div" }}
-						secondaryTypographyProps={{ component: "div" }}
-						sx={{ marginLeft: 1 }}
-					/>
-				</ListItemButton>
+				<Tooltip placement="right" title={disabled}>
+					<ListItemButton onClick={!disabled ? onClick : undefined}>
+						<ListItemIcon>
+							<MarketIcon market={market} />
+						</ListItemIcon>
+						<ListItemText
+							primary={<MarketTitle market={market} />}
+							secondary={description}
+							primaryTypographyProps={{ component: "div" }}
+							secondaryTypographyProps={{ component: "div" }}
+							sx={{ marginLeft: 1 }}
+						/>
+					</ListItemButton>
+				</Tooltip>
 			</ListItem>
 		);
 	},
@@ -178,6 +181,7 @@ const MarketOptions = React.memo(
 		setMaxLeverage: React.Dispatch<React.SetStateAction<number>>;
 	}) => {
 		const chainId = useChainId(); // TODO: check chainId === account.chainId
+		const account = useAccount();
 		const { connected, sdk } = useSafeAppsSDK();
 		const {
 			request: { sendTransaction },
@@ -221,11 +225,20 @@ const MarketOptions = React.memo(
 		const selectedMarket = markets?.find(
 			(market) => market.uniqueKey === selectedId,
 		);
+		const { data: selectedBalance } = useErc20Balance(
+			selectedMarket?.collateralAsset.address,
+			account?.address,
+		);
 
 		const [showMore, setShowMore] = React.useState(false);
 
 		const marketsInsufficientLltv = markets?.filter(
 			(market) => 1 / (1 - market.lltv.toWadFloat()) < leverage,
+		);
+		const marketsInsufficientLiquidity = markets?.filter(
+			(market) =>
+				market.state!.supplyAssets - market.state!.borrowAssets <
+				amount.wadMulUp(parseNumber(leverage, 18)),
 		);
 		const marketsWarnings = markets?.map((market) => ({
 			...market,
@@ -233,11 +246,17 @@ const MarketOptions = React.memo(
 				market.warnings?.filter(({ level }) => level === "YELLOW") ?? [],
 			redWarning: market.warnings?.find(({ level }) => level === "RED"),
 		}));
-		const marketsNoRedWarnings = marketsWarnings?.filter(
+		const availableMarkets = marketsWarnings?.filter(
 			(market): market is typeof market & { redWarning: undefined } =>
-				market.redWarning == null,
+				market.redWarning == null &&
+				!marketsInsufficientLltv?.some(
+					({ uniqueKey }) => market.uniqueKey === uniqueKey,
+				) &&
+				!marketsInsufficientLiquidity?.some(
+					({ uniqueKey }) => market.uniqueKey === uniqueKey,
+				),
 		);
-		const marketsYellowWarnings = marketsNoRedWarnings?.filter(
+		const marketsYellowWarnings = availableMarkets?.filter(
 			({ yellowWarnings }) => yellowWarnings.length > 0,
 		);
 		const marketsRedWarnings = marketsWarnings?.filter(
@@ -276,30 +295,43 @@ const MarketOptions = React.memo(
 							<Typography variant="subtitle2">
 								{selectedMarket ? "Selected loan" : "Recommended loans"}
 							</Typography>
-							<Button
-								onClick={() => setShowMore(true)}
-								color="inherit"
-								size="small"
-								sx={{ fontSize: 12 }}
-							>
-								Show more
-							</Button>
+							{!loading &&
+								(!!marketsRedWarnings?.length ||
+									!!marketsInsufficientLltv?.length ||
+									!!marketsInsufficientLiquidity?.length) && (
+									<Button
+										onClick={() => setShowMore(true)}
+										color="inherit"
+										size="small"
+										sx={{ fontSize: 12 }}
+									>
+										Show more
+									</Button>
+								)}
 						</Stack>
-						<ToggleButtonGroup
-							orientation="vertical"
-							value={selectedId}
-							exclusive
-							onChange={(_, value) => setSelectedId(value)}
-						>
-							{marketsNoRedWarnings
-								?.filter(
-									(market) => 1 / (1 - market.lltv.toWadFloat()) >= leverage,
-								)
-								.map((market, i) => (
+						{loading ? (
+							<Stack spacing={1}>
+								<Skeleton height={70} width="100%" />
+								<Skeleton height={70} width="100%" />
+								<Skeleton height={70} width="100%" />
+							</Stack>
+						) : error ? (
+							<Stack padding={2}>
+								<Typography variant="body2" color="error" align="center">
+									There was trouble loading recommended loans.
+								</Typography>
+							</Stack>
+						) : (
+							<ToggleButtonGroup
+								orientation="vertical"
+								value={selectedId}
+								exclusive
+								onChange={(_, value) => setSelectedId(value)}
+							>
+								{availableMarkets?.map((market, i) => (
 									<Collapse
 										key={market.id}
 										in={!selectedMarket || selectedId === market.uniqueKey}
-										appear
 									>
 										<ToggleButton
 											value={market.uniqueKey}
@@ -314,7 +346,8 @@ const MarketOptions = React.memo(
 										</ToggleButton>
 									</Collapse>
 								))}
-						</ToggleButtonGroup>
+							</ToggleButtonGroup>
+						)}
 
 						{selectedMarket && (
 							<Stack direction="row" justifyContent="space-between">
@@ -339,28 +372,20 @@ const MarketOptions = React.memo(
 					variant="contained"
 					color="primary"
 					startIcon={
-						isPreparing && <CircularProgress color="inherit" size={16} />
+						(isPreparing || selectedBalance == null) && (
+							<CircularProgress color="inherit" size={16} />
+						)
 					}
 					onClick={async () => {
 						if (!amount || !selectedMarket) return;
 
 						setIsPreparing(true);
 
-						const collateral = amount.wadDivDown(BigInt.WAD - ltv);
-
 						try {
-							const tx = await getPositionTx(
-								collateral,
-								ltv.wadMulDown(
-									collateral.mulDivDown(
-										selectedMarket.collateralPrice,
-										parseUnits("1", 36),
-									),
-								),
-							);
+							const tx = await getPositionTx(-amount, ltv);
 
 							if (connected) {
-								sdk.txs.send({
+								await sdk.txs.send({
 									txs: [{ ...tx, value: `0x${tx.value.toString(16)}` }],
 								});
 							} else {
@@ -372,14 +397,23 @@ const MarketOptions = React.memo(
 							setIsPreparing(false);
 						}
 					}}
-					disabled={!amount || !selectedMarket}
-					sx={{ paddingTop: 1.5, paddingBottom: 1.5 }}
+					disabled={
+						!amount ||
+						!selectedMarket ||
+						!selectedBalance ||
+						amount > selectedBalance
+					}
+					sx={{ paddingTop: 1.5, paddingBottom: 1.5, textTransform: "none" }}
 				>
 					{amount === 0n
 						? "Enter an amount"
 						: !selectedMarket
 							? "Select a market"
-							: "Deposit"}
+							: selectedBalance == null
+								? "Loading"
+								: amount > selectedBalance
+									? `Insufficient ${selectedMarket.collateralAsset.symbol} balance`
+									: "Deposit"}
 				</Button>
 
 				<Dialog
@@ -422,6 +456,31 @@ const MarketOptions = React.memo(
 											setSelectedId(market.uniqueKey);
 											setShowMore(false);
 										}}
+										disabled={`This market does not allow leverage higher than ×${(1 / (1 - market.lltv.toWadFloat())).toFixed(2)}`}
+									/>
+								))}
+							</List>
+						)}
+						{!!marketsInsufficientLiquidity?.length && (
+							<List
+								subheader={
+									<ListSubheader>
+										Markets with insufficient liquidity
+									</ListSubheader>
+								}
+							>
+								{marketsInsufficientLiquidity.map((market) => (
+									<MarketItem
+										key={market.uniqueKey}
+										market={market}
+										amount={amount}
+										leverage={leverage}
+										collateralYields={collateralYields}
+										onClick={() => {
+											setSelectedId(market.uniqueKey);
+											setShowMore(false);
+										}}
+										disabled={`This market only has ${(market.state!.supplyAssets - market.state!.borrowAssets).format(market.loanAsset.decimals, 2)} ${market.loanAsset.symbol} available`}
 									/>
 								))}
 							</List>

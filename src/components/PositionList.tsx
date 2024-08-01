@@ -2,8 +2,8 @@ import {
 	type GetUserMarketPositionSummariesQuery,
 	useGetUserMarketPositionSummariesQuery,
 } from "@/graphql/GetMarketPositionSummaries.query.generated";
-import { usePositionApy } from "@/position";
 import { useAssetYields } from "@/yield";
+import { ORACLE_PRICE_SCALE } from "@morpho-org/blue-sdk";
 import Link from "@mui/material/Link";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -49,7 +49,7 @@ const PositionItem = React.memo(
 		);
 
 		const collateralValue = React.useMemo(
-			() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
+			() => collateral.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE),
 			[collateral, collateralPrice],
 		);
 

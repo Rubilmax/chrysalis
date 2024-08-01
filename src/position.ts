@@ -1,12 +1,14 @@
 import "evm-maths";
 
 import { MarketConfig } from "@morpho-org/blue-sdk";
-import { blueAbi } from "@morpho-org/blue-sdk-viem";
+import { ORACLE_PRICE_SCALE } from "@morpho-org/blue-sdk";
+import "@morpho-org/blue-sdk-viem/lib/augment/Position";
+import { fetchAccrualPositionFromConfig } from "@morpho-org/blue-sdk-viem";
 import { ExecutorEncoder } from "executooor";
 import React from "react";
-import { type Hex, encodeFunctionData, maxUint256, parseUnits } from "viem";
+import { type Address, type Hex, encodeFunctionData, erc20Abi } from "viem";
+import { readContract } from "viem/actions";
 import { useAccount, useClient } from "wagmi";
-import { readContract } from "wagmi/actions";
 import { ExecutorContext } from "./app/providers/ExecutorContext";
 import { useEthersProvider } from "./ethers";
 import { parseNumber } from "./format";
@@ -18,6 +20,48 @@ export const quoteAssets = ["collateral", "underlying"] as const;
 
 export const getNextQuoteAsset = (quoteAsset: (typeof quoteAssets)[number]) =>
 	quoteAssets[(quoteAssets.indexOf(quoteAsset) + 1) % quoteAssets.length]!;
+
+export const getTargetLtv = (leverage: number) =>
+	BigInt.WAD - BigInt.WAD.wadDivUp(parseNumber(leverage));
+
+export const getCollateralValue = (
+	collateral: bigint,
+	collateralPrice: bigint,
+) => collateral.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE);
+
+export const getBalance = (
+	collateralValue: bigint,
+	borrowAssets: bigint,
+	collateralPrice: bigint,
+) =>
+	(collateralValue - borrowAssets).mulDivDown(
+		ORACLE_PRICE_SCALE,
+		collateralPrice,
+	);
+
+export const getTargetCollateral = (
+	targetLtv: bigint,
+	balance: bigint,
+	withdrawn?: bigint,
+) => {
+	if (withdrawn == null) return;
+	if (targetLtv === 0n) return balance - withdrawn;
+
+	return (balance - withdrawn).wadDivDown(BigInt.WAD - targetLtv);
+};
+
+export const getTargetLoan = (
+	collateralPrice: bigint,
+	targetLtv: bigint,
+	targetCollateral?: bigint,
+) => {
+	if (targetCollateral == null) return;
+	if (targetCollateral === 0n) return 0n;
+
+	return targetLtv.wadMulDown(
+		targetCollateral.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE),
+	);
+};
 
 export const usePositionApy = (
 	collateralValue: bigint | undefined,
@@ -49,36 +93,46 @@ export const usePositionApy = (
 	}, [collateralValue, borrowValue, collateralApy, borrowApy]);
 
 export const useTargetLtv = (leverage: number) =>
+	React.useMemo(() => getTargetLtv(leverage), [leverage]);
+
+export const useCollateralValue = (
+	collateral: bigint,
+	collateralPrice: bigint,
+) =>
 	React.useMemo(
-		() => BigInt.WAD - BigInt.WAD.wadDivUp(parseNumber(leverage)),
-		[leverage],
+		() => getCollateralValue(collateral, collateralPrice),
+		[collateral, collateralPrice],
+	);
+
+export const useBalance = (
+	collateralValue: bigint,
+	borrowAssets: bigint,
+	collateralPrice: bigint,
+) =>
+	React.useMemo(
+		() => getBalance(collateralValue, borrowAssets, collateralPrice),
+		[collateralValue, borrowAssets, collateralPrice],
 	);
 
 export const useTargetCollateral = (
 	targetLtv: bigint,
 	balance: bigint,
-	withdraw?: bigint,
+	withdrawn?: bigint,
 ) =>
-	React.useMemo(() => {
-		if (withdraw == null) return;
-		if (targetLtv === 0n) return balance - withdraw;
-
-		return (balance - withdraw).wadDivDown(BigInt.WAD - targetLtv);
-	}, [balance, withdraw, targetLtv]);
+	React.useMemo(
+		() => getTargetCollateral(targetLtv, balance, withdrawn),
+		[balance, withdrawn, targetLtv],
+	);
 
 export const useTargetLoan = (
-	{ collateralPrice }: { collateralPrice: bigint },
+	collateralPrice: bigint,
 	targetLtv: bigint,
 	targetCollateral?: bigint,
 ) =>
-	React.useMemo(() => {
-		if (targetCollateral == null) return;
-		if (targetCollateral === 0n) return 0n;
-
-		return targetLtv.wadMulDown(
-			targetCollateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
-		);
-	}, [collateralPrice, targetCollateral, targetLtv]);
+	React.useMemo(
+		() => getTargetLoan(collateralPrice, targetLtv, targetCollateral),
+		[collateralPrice, targetCollateral, targetLtv],
+	);
 
 export const usePositionDetails = ({
 	balance,
@@ -95,13 +149,16 @@ export const usePositionDetails = ({
 	};
 }) => {
 	const targetLtv = useTargetLtv(leverage);
-
 	const targetCollateral = useTargetCollateral(targetLtv, balance, withdraw);
-	const targetLoan = useTargetLoan(market, targetLtv, targetCollateral);
+	const targetLoan = useTargetLoan(
+		market.collateralPrice,
+		targetLtv,
+		targetCollateral,
+	);
 
 	const { collateralPrice } = market;
 	const targetCollateralValue = React.useMemo(
-		() => targetCollateral?.mulDivDown(collateralPrice, parseUnits("1", 36)),
+		() => targetCollateral?.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE),
 		[targetCollateral, collateralPrice],
 	);
 
@@ -116,7 +173,7 @@ export const usePositionDetails = ({
 		if (targetCollateralValue == null || targetLoan == null) return;
 
 		return (targetCollateralValue - targetLoan).mulDivDown(
-			parseUnits("1", 36),
+			ORACLE_PRICE_SCALE,
 			collateralPrice,
 		);
 	}, [targetLoan, collateralPrice, targetCollateralValue]);
@@ -142,12 +199,10 @@ export const useGetPositionTx = (
 	const account = useAccount();
 	const provider = useEthersProvider();
 	const { executor } = React.useContext(ExecutorContext);
+	const client = useClient({ config });
 
-	return async (
-		suppliedCollateral: bigint,
-		borrowedAssets: bigint,
-		repaidShares?: bigint,
-	) => {
+	return async (withdrawn: bigint, targetLtv: bigint) => {
+		if (!client) throw Error("unknown client");
 		if (!market) throw Error("unknown market");
 		if (!account.address || account.chainId == null)
 			throw Error("invalid account");
@@ -161,7 +216,49 @@ export const useGetPositionTx = (
 			lltv: market.lltv,
 		});
 
+		const { collateral, borrowShares, borrowAssets, collateralValue } =
+			await fetchAccrualPositionFromConfig(
+				account.address,
+				marketParams,
+				client,
+				{ chainId: account.chainId },
+			);
+
+		const balance = getBalance(
+			collateralValue,
+			borrowAssets,
+			market.collateralPrice,
+		);
+		const targetCollateral = getTargetCollateral(targetLtv, balance, withdrawn);
+		const targetLoan = getTargetLoan(
+			market.collateralPrice,
+			targetLtv,
+			targetCollateral,
+		);
+		if (targetCollateral == null) throw Error("invalid target collateral");
+		if (targetLoan == null) throw Error("invalid target loan");
+
+		const suppliedCollateral = targetCollateral - collateral;
+		const borrowedAssets = targetLoan - borrowAssets;
+
 		const encoder = new ExecutorEncoder(executor.address, provider);
+
+		const approveIfRequired = async (
+			address: Address,
+			spender: Address,
+			amount: bigint,
+		) => {
+			const allowance = await readContract(client, {
+				address,
+				abi: erc20Abi,
+				functionName: "allowance",
+				args: [executor.address, spender],
+			});
+
+			const requiredApproval = amount - allowance;
+			if (requiredApproval > 0n)
+				encoder.erc20Approve(address, spender, requiredApproval); // TODO: handle approve-only-once tokens
+		};
 
 		if (suppliedCollateral < 0n)
 			encoder.morphoBlueWithdrawCollateral(
@@ -182,8 +279,8 @@ export const useGetPositionTx = (
 				executor.address,
 			);
 
-		const deleverage = borrowedAssets < 0n && suppliedCollateral < 0n;
-		const leverage = borrowedAssets > 0n && suppliedCollateral > 0n;
+		const deleverage = borrowedAssets < 0n && withdrawn > 0n;
+		const leverage = borrowedAssets > 0n && withdrawn < 0n;
 
 		let params: BestSwapParams | undefined;
 		if (deleverage) {
@@ -194,7 +291,7 @@ export const useGetPositionTx = (
 				dst: market.loanAsset.address,
 				from: executor.address,
 				amount: (-borrowedAssets)
-					.mulDivUp(parseUnits("1", 36), market.collateralPrice)
+					.mulDivUp(ORACLE_PRICE_SCALE, market.collateralPrice)
 					.wadMulUp(1_015000000000000000n),
 				slippage: 0.0025,
 			};
@@ -214,15 +311,20 @@ export const useGetPositionTx = (
 			const swap = await fetchBestSwap(params);
 
 			if (swap.spender)
-				// TODO: check if allowance sufficient.
-				encoder.erc20Approve(params.src, swap.spender, params.amount);
+				await approveIfRequired(params.src, swap.spender, params.amount);
 
 			encoder.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
 		}
 
 		if (suppliedCollateral > 0n) {
-			// TODO: check if allowance sufficient.
-			encoder.erc20Approve(
+			encoder.erc20TransferFrom(
+				market.collateralAsset.address,
+				account.address,
+				executor.address,
+				suppliedCollateral,
+			);
+
+			await approveIfRequired(
 				market.collateralAsset.address,
 				market.morphoBlue.address,
 				suppliedCollateral,
@@ -240,9 +342,8 @@ export const useGetPositionTx = (
 		if (borrowedAssets < 0n) {
 			const repaidAssets = -borrowedAssets;
 
-			if (repaidShares) {
-				// TODO: check if allowance sufficient.
-				encoder.erc20Approve(
+			if (targetLoan === 0n) {
+				await approveIfRequired(
 					market.loanAsset.address,
 					market.morphoBlue.address,
 					repaidAssets.wadMul(1_001000000000000000n),
@@ -252,13 +353,12 @@ export const useGetPositionTx = (
 					market.morphoBlue.address,
 					marketParams,
 					0n,
-					repaidShares,
+					borrowShares,
 					account.address,
 					encoder.flush(),
 				);
 			} else {
-				// TODO: check if allowance sufficient.
-				encoder.erc20Approve(
+				await approveIfRequired(
 					market.loanAsset.address,
 					market.morphoBlue.address,
 					repaidAssets,
@@ -275,27 +375,8 @@ export const useGetPositionTx = (
 			}
 		}
 
-		if (deleverage && -suppliedCollateral > (params!.amount ?? 0n)) {
-			const remainingCollateral = -suppliedCollateral - params!.amount;
-
-			// const swap = await fetchBestSwap({
-			// 	chainId: account.chainId,
-			// 	src: collateralAsset.address,
-			// 	dst: loanAsset.address,
-			// 	from: executor.address,
-			// 	amount: remainingCollateral,
-			// 	slippage: 0.0025,
-			// });
-
-			// if (swap.spender)
-			// 	// TODO: check if allowance sufficient.
-			// 	encoder.erc20Approve(
-			// 		collateralAsset.address,
-			// 		swap.spender,
-			// 		remainingCollateral,
-			// 	);
-
-			// encoder.pushCall(swap.tx.to, swap.tx.value, swap.tx.data);
+		if (deleverage && withdrawn > (params!.amount ?? 0n)) {
+			const remainingCollateral = withdrawn - params!.amount;
 
 			encoder.erc20Transfer(
 				market.collateralAsset.address,

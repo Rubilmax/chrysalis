@@ -62,6 +62,8 @@ export type GetAssetMarketsQuery = {
 				__typename?: "MarketState";
 				borrowApy: number;
 				netBorrowApy: number | null;
+				supplyAssets: Types.Scalars["BigInt"]["output"];
+				borrowAssets: Types.Scalars["BigInt"]["output"];
 			} | null;
 			warnings: Array<{
 				__typename?: "MarketWarning";
@@ -117,6 +119,8 @@ export const GetAssetMarketsDocument = gql`
       state {
         borrowApy
         netBorrowApy
+        supplyAssets
+        borrowAssets
       }
       warnings {
         type

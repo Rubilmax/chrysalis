@@ -32,7 +32,7 @@ import Typography from "@mui/material/Typography";
 import { useDebounce } from "@uidotdev/usehooks";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 import type { Address } from "viem";
-import { useAccount, useChainId } from "wagmi";
+import { useAccount, useChainId, useReadContracts } from "wagmi";
 import Token from "./Token";
 
 export type AssetOption = Pick<
@@ -122,7 +122,6 @@ const AssetSelect = ({
 		variables: {
 			chainId,
 		},
-		fetchPolicy: "cache-first",
 	});
 
 	// Cache assets to local storage.
@@ -133,6 +132,13 @@ const AssetSelect = ({
 	const [assetsOpen, setAssetsOpen] = React.useState(false);
 	const [searchField, setSearchField] = React.useState("");
 	const search = useDebounce(searchField, 300);
+
+	// const res = useErc20Balances(
+	// 	assets?.items?.map(({ address }) => address),
+	// 	account?.address,
+	// );
+
+	// console.log(res);
 
 	if (!asset) return <Skeleton height={35} width={120} />;
 

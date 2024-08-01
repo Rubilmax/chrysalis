@@ -2,6 +2,7 @@ import { useLocalStorage } from "@/localStorage";
 import { usePositionApy } from "@/position";
 import { getAssetUsdCentsPrecision } from "@/utils";
 import type { AssetYields } from "@/yield";
+import { ORACLE_PRICE_SCALE } from "@morpho-org/blue-sdk";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
@@ -36,7 +37,7 @@ const PositionSummary = ({
 	>(`${market.uniqueKey}-quoteAsset`, "loan");
 
 	const collateralValue = React.useMemo(
-		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
+		() => collateral.mulDivDown(collateralPrice, ORACLE_PRICE_SCALE),
 		[collateral, collateralPrice],
 	);
 
@@ -54,14 +55,14 @@ const PositionSummary = ({
 			case "loan":
 				return loanBalance;
 			case "collateral":
-				return loanBalance.mulDivDown(parseUnits("1", 36), collateralPrice);
+				return loanBalance.mulDivDown(ORACLE_PRICE_SCALE, collateralPrice);
 			case "usd":
 				return loanBalance.wadDiv(
 					parseUnits((loanAsset.priceUsd ?? 0).toFixed(18), 18),
 				);
 			case "underlying":
 				return loanBalance
-					.mulDivDown(parseUnits("1", 36), collateralPrice)
+					.mulDivDown(ORACLE_PRICE_SCALE, collateralPrice)
 					.wadDivDown(collateralYields?.underlying?.exchangeRate ?? BigInt.WAD);
 			default:
 				throw Error("unknown quote asset");

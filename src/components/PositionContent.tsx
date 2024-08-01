@@ -1,5 +1,7 @@
 import { ExecutorContext } from "@/app/providers/ExecutorContext";
 import {
+	useBalance,
+	useCollateralValue,
 	useGetPositionTx,
 	usePositionApy,
 	usePositionDetails,
@@ -39,7 +41,6 @@ const PositionContent = ({
 		collateral,
 		collateralUsd,
 		borrowAssets,
-		borrowShares,
 		market: { loanAsset, collateralAsset, collateralPrice, ...market },
 	} = position;
 
@@ -54,19 +55,8 @@ const PositionContent = ({
 
 	const { connected, sdk } = useSafeAppsSDK();
 
-	const collateralValue = React.useMemo(
-		() => collateral.mulDivDown(collateralPrice, parseUnits("1", 36)),
-		[collateral, collateralPrice],
-	);
-
-	const balance = React.useMemo(
-		() =>
-			(collateralValue - borrowAssets).mulDivDown(
-				parseUnits("1", 36),
-				collateralPrice,
-			),
-		[borrowAssets, collateralPrice, collateralValue],
-	);
+	const collateralValue = useCollateralValue(collateral, collateralPrice);
+	const balance = useBalance(collateralValue, borrowAssets, collateralPrice);
 
 	const ltv = React.useMemo(() => {
 		if (borrowAssets === 0n) return 0n;
@@ -113,11 +103,12 @@ const PositionContent = ({
 	const [collateralYields] = useAssetYields(collateralAsset.address);
 
 	const {
+		targetLtv,
 		targetBalance,
-		resultLtv,
 		targetCollateral,
 		targetLoan,
 		targetCollateralValue,
+		resultLtv,
 	} = usePositionDetails({
 		market: position.market,
 		balance,
@@ -303,16 +294,12 @@ const PositionContent = ({
 					}
 					disableElevation
 					onClick={async () => {
-						if (targetCollateral == null || targetLoan == null) return;
+						if (withdraw == null) return;
 
 						setIsPreparing(true);
 
 						try {
-							const tx = await getPositionTx(
-								targetCollateral - collateral,
-								borrowAssets - targetLoan,
-								targetLoan === 0n ? borrowShares : undefined,
-							);
+							const tx = await getPositionTx(withdraw, targetLtv);
 
 							if (connected) {
 								sdk.txs.send({

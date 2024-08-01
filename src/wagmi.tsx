@@ -4,7 +4,7 @@ import { getDefaultConfig } from "connectkit";
 import React from "react";
 import type { Id } from "react-toastify";
 import { http, type Address, erc20Abi } from "viem";
-import { createConfig, useReadContract } from "wagmi";
+import { createConfig, useReadContract, useReadContracts } from "wagmi";
 import {
 	type Config,
 	type ResolvedRegister,
@@ -25,7 +25,7 @@ import {
 } from "wagmi/connectors";
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID!;
-const appLogoUrl = "https://rubilmax.github.io/chrysalis/chrysalis.png";
+const appLogoUrl = "https://app.morpho.ninja/logo-light.svg";
 
 export const config = createConfig(
 	getDefaultConfig({
@@ -40,7 +40,7 @@ export const config = createConfig(
 		ssr: true,
 		appName: "Ninja Blue",
 		appDescription: "Minimalist widget for Morpho Blue",
-		appUrl: "https://rubilmax.github.io/chrysalis/",
+		appUrl: "https://app.morpho.ninja/",
 		appIcon: appLogoUrl, // no bigger than 1024x1024px (max. 1MB)
 		batch: {
 			multicall: true,
@@ -202,6 +202,24 @@ export const useErc20Balance = (
 		functionName: "balanceOf",
 		args: [account!],
 		query: {
-			enabled: !!account,
+			enabled: account != null,
 		},
 	});
+
+// export const useErc20Balances = (
+// 	erc20s: Address[] | undefined,
+// 	account: Address | undefined,
+// ) =>
+// 	useReadContracts({
+// 		contracts: erc20s?.map((erc20) => [
+// 			{
+// 				address: erc20,
+// 				abi: erc20Abi,
+// 				functionName: "balanceOf",
+// 				args: [account!],
+// 			},
+// 		]),
+// 		query: {
+// 			enabled: account != null,
+// 		},
+// 	});
